@@ -1,0 +1,92 @@
+<h3 class="card-title font-weight-bold">Job Queue</h3>
+<div id="job_queue_card_content"></div>
+
+<a class="font-weight-bold btn btn-outline-info btn-block shadow-sm mb-2" style="font-size: 18px;" href="<%= url_for my_jobs_path %>">
+    <i class="fa fa-table"></i> View All Jobs
+</a>
+
+<script defer>
+    function load_job_queue() {
+        const loadingHtml = `
+        <div class="font-weight-bold mb-2">
+            <div class="spinner-border spinner-border-sm text-dark" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            Loading job queue data...
+        </div>
+        `;
+        
+        $("#job_queue_card_content").html(loadingHtml);
+        
+        return fetch(`<%= url_for controller: "api/job_queue", action: "get" %>`, {redirect: "manual"}).then(res => {
+            if (res.status === 0 && res.type === "opaqueredirect") {
+                redirectToLogin();
+                return Promise.reject(res);
+            }
+            if (!res.ok) { 
+                return Promise.reject(res);
+            }
+            return res.json(); 
+        }).then(data => {
+            const headers = ["Name (ID)", "Partition", "State (Reason)"];
+
+            const tableHtml = data.length === 0 ? '<div class="h5 mb-2">No recent jobs</div>' : `
+            <div class="table-responsive mx-md-1 mb-3" style="border-radius: 25px; box-shadow: 0 0 5px #ccc;">
+                <table class="table table-bordered mb-0">
+                    <thead>
+                        ${headers.map((header) => {
+                            return `<th scope="col" class="h5 font-weight-bold">${header}</th>`;
+                        }).join("")}
+                    </thead>
+                    <tbody>
+                        ${data.map((job) => {
+                            var state_verbose = (SIMPLE_JOB_STATE_CODES[job.state.split(" ")[0]] || JOB_STATE_CODES[job.state.split(" ")[0]] || "--").replaceAll(/"/g, "&quot;");
+                            var reason_verbose = (SIMPLE_JOB_REASON_CODES[job.reason.split(" ")[0]] || JOB_REASON_CODES[job.reason.split(" ")[0]] || "--").replaceAll(/"/g, "&quot;");
+                            return `
+                            <tr>
+                                <td class="h5">${job.name} (${job.jobid})</td>
+                                <td style="font-size: 1.2rem;">${job.partition}</td>
+                                <td>
+                                    <a
+                                        class="badge badge-primary p-2 shadow-sm" 
+                                        style="font-size: 1rem; color: ${JOB_STATE_COLORS[job.state.split(" ")[0]]?.fg}; background-color: ${JOB_STATE_COLORS[job.state.split(" ")[0]]?.bg};" 
+                                        data-toggle="tooltip" 
+                                        data-placement="top" 
+                                        title="${state_verbose}">
+                                        ${job.state}
+                                    </a>
+                                    ${job.reason !== "None" && reason_verbose !== "--" ? 
+                                        `<span class="text-nowrap"> due to
+                                            <span 
+                                                class="badge badge-pill badge-secondary shadow-sm"
+                                                style="font-size: 0.9rem;"
+                                                data-toggle="tooltip" 
+                                                data-placement="top" 
+                                                title="${reason_verbose}">
+                                                ${job.reason}
+                                            </span>
+                                        </span>`
+                                    : ""}
+                            </tr>
+                            `;
+                        }).join("")}
+                    </tbody>
+                </table>
+            </div>
+            `;
+
+            $("#job_queue_card_content").html(tableHtml);
+            $('[data-toggle="tooltip"]').tooltip({ boundary: 'window' });
+        }).catch(res => {
+            const errorHtml = `
+            <div class="font-weight-bold h5 text-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                Failed to load
+                <button class="btn btn-danger badge badge-pill shadow-sm" onclick="load_job_queue()">Try again</button>
+            </div>
+            `;
+
+            $("#job_queue_card_content").html(errorHtml);
+        });
+    }
+</script>

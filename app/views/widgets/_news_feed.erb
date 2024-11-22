@@ -1,0 +1,59 @@
+<h3 class="card-title font-weight-bold">Announcements</h3>
+<div id="news_feed_card_content"></div>
+<a href="https://www.rcac.purdue.edu/news/anvil?state=all&order_dir=desc" class="font-weight-bold btn btn-outline-info btn-block shadow-sm mb-2 mt-1" style="font-size: 18px;">
+    <i class="fas fa-external-link-alt"></i> View All Announcements
+</a>
+
+<script defer>
+    function load_news_feed() {
+        const loadingHtml = `
+        <div class="font-weight-bold mb-2">
+            <div class="spinner-border spinner-border-sm text-dark" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            Loading RSS feed...
+        </div>
+        `;
+        
+        $("#news_feed_card_content").html(loadingHtml);
+        
+        return fetch(`<%= url_for controller: "api/news_feed", action: "get" %>`, {redirect: "manual"}).then(res => {
+            if (res.status === 0 && res.type === "opaqueredirect") {
+                redirectToLogin();
+                return Promise.reject(res);
+            }
+            if (!res.ok) { 
+                return Promise.reject(res);
+            }
+            return res.json(); 
+        }).then(data => {
+            const filteredData = data.filter((article) => moment(article.datetimeedited).isAfter(moment().subtract(0, "days"))).slice(0, 3);
+            const newsHtml = filteredData.length === 0 ? '<div class="h5">No recent announcements.</div>' : filteredData.map((article) => {
+                const articleHtml = `
+                <div class="card mx-md-1 mb-3" style="border-radius: 25px; box-shadow: 0 0 5px #ccc;">
+                    <div class="card-body">
+                        <h4 class="card-title"><a href="${article.uri}">${article.headline}</a></h4>
+                        <h6 class="card-subtitle mb-2 text-muted"><i class="far fa-clock"></i> ${article.formatteddate}</h6>
+                        <div class="card-text" style="display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; text-overflow: ellipsis; white-space: normal;">${article.formattedbody}</div>
+                        <p class="card-text"><small class="text-muted">Originally posted on ${article.formattedcreateddate}</small></p>
+                    </div>
+                </div>
+                `;
+
+                return articleHtml;
+            }).join("");
+
+            $("#news_feed_card_content").html(newsHtml);
+        }).catch(res => {
+            const errorHtml = `
+            <div class="font-weight-bold h5 text-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                Failed to load
+                <button class="btn btn-danger badge badge-pill shadow-sm" onclick="load_news_feed()">Try again</button>
+            </div>
+            `;
+
+            $("#news_feed_card_content").html(errorHtml);
+        });
+    }
+</script>

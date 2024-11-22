@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="<%= Configuration.locale %>" style="font-size: 16px;">
+<head>
+  <title><%= content_for?(:title) ? yield(:title) : "Dashboard - #{OodAppkit.dashboard.title}" %></title>
+  <%= favicon_link_tag "favicon.ico", href: OodAppkit.public.url.join("favicon.ico"), skip_pipeline: true %>
+
+  <!-- Webpacker -->
+  <%= javascript_pack_tag "application" %>
+  <%= stylesheet_pack_tag "application", media: "all" %>
+
+  <!-- (Legacy) Sprockets -->
+  <%= stylesheet_link_tag "application", media: "all" %>
+  <%= javascript_include_tag "application" %>
+  <%= javascript_include_tag "turbolinks" if Configuration.turbolinks_enabled? %>
+
+  <!-- Lodash -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+
+  <!--Datatables.net-->
+  <link href="https://cdn.datatables.net/v/bs4/dt-2.0.8/fh-4.0.1/r-3.0.2/sl-2.0.3/datatables.min.css" rel="stylesheet">
+  <script src="https://cdn.datatables.net/v/bs4/dt-2.0.8/fh-4.0.1/r-3.0.2/sl-2.0.3/datatables.min.js"></script>
+
+  <!--Moment-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.45/moment-timezone.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-duration-format/2.3.2/moment-duration-format.min.js"></script>
+
+  <!--Font Awesome 5-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.0/css/all.min.css" />
+
+  <!--Toastr-->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+  <!-- SheetJS -->
+  <script lang="javascript" src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+  <!--Chartjs-->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-stacked100@1.0.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.3.1/dist/chartjs-chart-treemap.min.js"></script>
+
+  <!-- Patternomaly -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/patternomaly/1.3.2/patternomaly.min.js"></script>
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+
+  <%= render partial: "layouts/constants" %>
+  <%= render partial: "layouts/util" %>
+
+  <style>
+    nav#header-navbar {
+      background-color: #CEB888;
+      color: white;
+    }
+
+    nav#header-navbar a.nav-link, nav#header-navbar a.navbar-brand {
+      color: white;
+    }
+
+    .no-select {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
+    }
+    
+    .button {
+      border: none;
+      color: white;
+      width: 100%;
+      padding: 15px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 20px;
+      margin: 4px 2px;
+      cursor: pointer;
+      background-color: #8B7355;
+      border-radius: 12px;
+    }
+
+    .rss-item {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 0;
+    }
+
+    .rss-item h4 {
+      margin: 0;
+    }
+
+    .rss-item p {
+      margin: 5px 0;
+      font-size: 16px;
+    }
+
+    .rss-item small {
+      color: #666;
+    }
+
+    .test-box {
+      border: 2px solid #d3d3d3;
+      border-radius: 17px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .icon-circle > i {
+      position: relative;
+      top: calc(50% - 27px); /* 50% - 3/4 of icon height */
+      font-size: 36px;
+    }
+
+    .icon-circle {
+      text-align: center;
+      height: 50px;
+      width: 50px;
+      border-radius: 17px;
+    }
+
+    .separator {
+      border: 0;
+      height: 1px;
+      background: #ccc;
+      margin: 20px 0;
+    }
+
+    #loading {
+      display: flex;
+      align-items: center;
+    }
+    
+    #loading em {
+      margin-left: 5px;
+    }
+
+    #heading {
+      padding: 10px;
+      text-align: center;
+    }
+  </style>
+
+  <%= csrf_meta_tags %>
+
+  <%= yield :head %>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <% if Configuration.turbolinks_enabled? %>
+    <meta name="turbolinks-root" content="<%= ENV["RAILS_RELATIVE_URL_ROOT"] || "/" %>">
+  <% end %>
+<%= render partial: "/layouts/nav/styles", locals: { bg_color: Configuration.brand_bg_color, link_active_color: Configuration.brand_link_active_bg_color } %>
+</head>
+<body>
+  <header <%= "data-turbolinks-permanent" if Configuration.turbolinks_enabled? %>>
+    <nav class="navbar navbar-expand-md shadow-sm py-1" aria-label="Navigation" id="header-navbar" style="font-size: 16px;">
+      <a class="navbar-brand" href="<%= root_path %>">
+        <img class="d-inline-block" width="40" height="40" src="https://b.fssta.com/uploads/application/college/team-logos/Purdue.png">
+        <%= OodAppkit.dashboard.title.html_safe %>
+      </a>
+      
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon">
+          <i class="fas fa-bars" style="color: white; font-size: 28px;"></i>
+        </span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbar">
+        <ul class="navbar-nav mr-auto">
+          <%= render partial: "layouts/nav/featured_apps", locals: { group: @featured_group } if @featured_group.present? %>
+          <%= render partial: "layouts/nav/group", collection: @nav_groups %>
+          <%= render partial: "layouts/nav/sessions", nav_groups: @nav_groups if Configuration.app_development_enabled? || @nav_groups.any?(&:has_batch_connect_apps?) %>
+          <%= render partial: "layouts/nav/all_apps" if Configuration.show_all_apps_link? %>
+          <li class="nav-item">
+            <a href="<%= url_for my_jobs_path %>" class="nav-link"><i class="fas fa-briefcase"></i> <span class="d-sm-none d-md-none d-lg-inline">My Jobs</span></a>
+          </li>
+        </ul>
+
+        <ul class="navbar-nav">
+          <%= render partial: "layouts/nav/develop_dropdown" if Configuration.app_development_enabled? %>
+          <%= render partial: "layouts/nav/help_dropdown" %>
+
+          <li class="nav-item" data-container="body" data-toggle="popover" data-content="<%= t("dashboard.nav_user", username: @user.name) %>" data-placement="bottom">
+            <a class="nav-link disabled">
+              <i class="fas fa-user" aria-hidden="true" title="<%= t("dashboard.nav_user", username: @user.name) %>" aria-hidden="true"></i><span class="d-sm-none d-md-none d-lg-inline"> <%= t("dashboard.nav_user", username: @user.name) %></span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="/logout"><i class="fas fa-sign-out-alt" aria-hidden="true"></i><span class="d-sm-none d-md-none d-lg-inline"> <%= t("dashboard.nav_logout") %></span></a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+  <div class="container content mt-4 px-lg-4" role="main" id="main-container">
+    <div class="row" id="warnings"></div>
+    <%= yield %>
+  </div>
+
+  <%= render "layouts/footer" %>
+
+  <script>
+    function getValuesByKey(data, key) {
+      return data.map(item => item[key]);
+    }
+
+    function showWarning(id, body, showClose) {
+      const alertHtml = `
+      <div class="col-12" id="${id}">
+          <div class="alert alert-danger ${showClose ? "alert-dismissible fade show" : ""}" role="alert" style="border-radius: 25px; box-shadow: 0 0 5px #ccc;">
+              ${body}
+              ${showClose ? `
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              ` : ""}
+          </div>
+      </div>
+      `;
+
+      if ($(`#warnings #${id}`).length > 0) {
+          $(`#warnings #${id}`).remove();
+      }
+      $("#warnings").append(alertHtml);
+    }
+
+    // Originally from https://stackoverflow.com/a/16348977
+    function stringToColor(str) {
+      let hash = 0;
+      str.split('').forEach(char => {
+          hash = char.charCodeAt(0) + ((hash << 5) - hash);
+      })
+      let color = '#';
+      for (let i = 0; i < 3; i++) {
+          const value = (hash >> (i * 8)) & 0xff;
+          color += value.toString(16).padStart(2, '0');
+      }
+      return color;
+    }
+  </script>
+</body>
+</html>

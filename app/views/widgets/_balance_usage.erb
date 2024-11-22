@@ -1,0 +1,106 @@
+<h3 class="card-title font-weight-bold">Service Unit (SU) Usage</h3>
+<div id="su_usage_card_content"></div>
+
+<script defer>
+    function download_balance_summary(allocation, type) {
+        var BALANCE_SUMMARY_COLUMNS = ["Username", "SUs Used", "SU Limit"];
+
+        $(`#${allocation}-export-dropdown-button`).html(`
+        <div class="spinner-border spinner-border-sm text-light" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+        Export
+        `);
+
+        fetch(`<%= url_for controller: "api/balance_summary", action: "get" %>?allocation=${encodeURIComponent(allocation)}`, {redirect: "manual"}).then(res => {
+            if (res.status === 0 && res.type === "opaqueredirect") {
+                redirectToLogin();
+                return Promise.reject(res);
+            }
+            if (!res.ok) { 
+                return Promise.reject(res);
+            }
+            return res.json();
+        }).then(data => {
+            var EXPORT_TYPES = {"CSV": "csv", "Excel": "xlsx"};
+            if (data.length === 0) {
+                toastr.error("No data to export");
+            } else if (Object.keys(EXPORT_TYPES).includes(type)) {
+                toastr.info(`Exporting ${data.length} row(s) as ${type}...`);
+                data.unshift(BALANCE_SUMMARY_COLUMNS);
+                const worksheet = XLSX.utils.aoa_to_sheet(data.map(row => Object.values(row)));
+                var workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+                XLSX.writeFile(workbook, `service_units_${allocation}_${Date.now()}.${EXPORT_TYPES[type]}`, { compression: true });
+            } else {
+                toastr.error("Invalid export file type");
+            }
+        }).catch(res => {
+            toastr.error("Failed to export allocation service unit usage!");
+        }).finally(() => {
+            $(`#${allocation}-export-dropdown-button`).html("Export");
+        });
+    }
+
+    function load_balance_usage() {
+        const loadingHtml = `
+        <div class="font-weight-bold mb-2">
+            <div class="spinner-border spinner-border-sm text-dark" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            Loading SU usage data...
+        </div>
+        `;
+        
+        $("#su_usage_card_content").html(loadingHtml);
+
+        return fetch(`<%= url_for controller: "api/balance_usage", action: "get" %>`).then(res => {
+            if (!res.ok) { 
+                return Promise.reject(res);
+            }
+            return res.json(); 
+        }).then(data => {
+            const tableHtml = data.length === 0 ? '<div class="h5 mb-2">No allocations available</div>' : data.map((row) => {
+                const percentUsedAccount = (row.used / row.limit) * 100;
+                const barHtml = `
+                <div class="card mx-md-1 mb-3" style="border-radius: 25px; box-shadow: 0 0 5px #ccc;">
+                    <div class="card-body px-3 py-2">
+                        <div class="h5 card-title mb-1">
+                            ${row.account} ${percentUsedAccount >= 95 ? `<i class="fa fa-warning text-warning" data-toggle="tooltip" title="You have reached over 95% of your service unit limit."></i>` : ""}
+                            <div class="btn-group float-right">
+                                <a id="${row.account}-export-dropdown-button" role="button" class="dropdown-toggle font-weight-bold badge badge-pill badge-info shadow-sm no-select" data-toggle="dropdown" aria-expanded="false">
+                                    Export
+                                </a>
+                                <div class="su-export-dropdown dropdown-menu" aria-labelledby="${row.account}-export-dropdown-button" data-account="${row.account}">
+                                    <button class="dropdown-item">CSV</button>
+                                    <button class="dropdown-item">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-text"><b>${+row.used.toFixed(2)}</b> SUs used / <b>${+row.limit.toFixed(2)}</b> total (<b>${+(row.limit - row.used).toFixed(2)}</b> left)</div>
+                        <div class="progress mt-1 mb-2 shadow-sm w-100" style="height: 17px;">
+                            <div class="progress-bar" role="progressbar" style="background-color: ${percentUsedAccount > 95 ? "#FBA09D" : "#A9CCE3"}; color: #E3A869; width: ${percentUsedAccount}%;" aria-valuenow="${percentUsedAccount}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+                `;
+                return barHtml;
+            }).join("");
+
+            $("#su_usage_card_content").html(tableHtml);
+            $('div.su-export-dropdown .dropdown-item').on("click", function() {
+                download_balance_summary($(this).parent().data("account"), $(this).text());
+            });
+        }).catch(res => {
+            const errorHtml = `
+            <div class="font-weight-bold h5 text-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                Failed to load
+                <button class="btn btn-danger badge badge-pill shadow-sm" onclick="load_balance_usage()">Try again</button>
+            </div>
+            `;
+
+            $("#su_usage_card_content").html(errorHtml);
+        });
+    }
+</script>

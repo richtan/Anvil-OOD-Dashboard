@@ -1,0 +1,4 @@
+---
+BUNDLE_RETRY: "2"
+BUNDLE_JOBS: "4"
+BUNDLE_WITHOUT: "doc:test"

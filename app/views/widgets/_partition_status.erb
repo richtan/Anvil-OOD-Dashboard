@@ -1,0 +1,79 @@
+<h3 class="card-title font-weight-bold">Partition Status</h3>
+<div id="partition_status_card_content"></div>
+
+<a class="font-weight-bold btn btn-outline-info btn-block shadow-sm mb-2" style="font-size: 18px;" href="https://www.rcac.purdue.edu/knowledge/anvil/run/partitions">
+    <i class="fas fa-external-link-alt"></i> View Queue Limits
+</a>
+
+<script defer>
+    function load_partition_status() {
+        const loadingHtml = `
+        <div class="font-weight-bold mb-2">
+            <div class="spinner-border spinner-border-sm text-dark" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            Loading partition status data...
+        </div>
+        `;
+        
+        $("#partition_status_card_content").html(loadingHtml);
+        
+        return fetch(`<%= url_for controller: "api/partition_status", action: "get" %>`, {redirect: "manual"}).then(res => {
+            if (res.status === 0 && res.type === "opaqueredirect") {
+                redirectToLogin();
+                return Promise.reject(res);
+            }
+            if (!res.ok) { 
+                return Promise.reject(res);
+            }
+            return res.json(); 
+        }).then(data => {
+            const headers = ["Partition", "State", "Current Load"];
+
+            const tableHtml = `
+            <div class="table-responsive mx-md-1 mb-3" style="border-radius: 25px; box-shadow: 0 0 5px #ccc;">
+                <table class="table table-bordered mb-0">
+                    <thead>
+                        ${headers.map((header) => {
+                            return `<th scope="col" class="h5 font-weight-bold">${header}</th>`;
+                        }).join("")}
+                    </thead>
+                    <tbody>
+                        ${data.map((row) => {
+                            return `
+                            <tr>
+                                <td class="h5">${row.partition.replace("wholenode", "wholenode<br />standard<br />wide").replace("gpu", "gpu<br />gpu-debug")}</td>
+                                <td class="font-weight-bold text-uppercase h5" style="background-color: ${row.state === "up" ? "#BDD9BF" : "#FBA09D"};">${row.state}</td>
+                                <td>
+                                    <b>${row.allocated_nodes}</b>/<b>${row.total_nodes - row.other_nodes}</b> nodes busy (<b>${row.free_nodes}</b> free, <b>${row.other_nodes}</b> offline)
+                                    ${!["wholenode", "gpu"].includes(row.partition) ? `
+                                        <hr class="my-1" />
+                                        <b>${row.allocated_cores}</b>/<b>${row.total_cores - row.other_cores}</b> cores busy (<b>${row.free_cores}</b> free)
+                                    `: ""}
+                                    ${row.partition === "gpu" ? `
+                                        <hr class="my-1" />
+                                        <b>${row.allocated_gpus}</b>/<b>${row.total_gpus}</b> GPUs busy (<b>${row.total_gpus - row.allocated_gpus}</b> free)
+                                    `: ""}
+                                </td>
+                            </tr>
+                            `;
+                        }).join("")}
+                    </tbody>
+                </table>
+            </div>
+            `;
+
+            $("#partition_status_card_content").html(tableHtml);
+        }).catch(res => {
+            const errorHtml = `
+            <div class="font-weight-bold h5 text-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                Failed to load
+                <button class="btn btn-danger badge badge-pill shadow-sm" onclick="load_partition_status()">Try again</button>
+            </div>
+            `;
+
+            $("#partition_status_card_content").html(errorHtml);
+        });
+    }
+</script>

@@ -1,0 +1,82 @@
+<h3 class="card-title font-weight-bold">Disk Usage</h3>
+<div id="disk_usage_card_content"></div>
+
+<script defer>
+    function load_disk_usage() {
+        const loadingHtml = `
+        <div class="font-weight-bold mb-2">
+            <div class="spinner-border spinner-border-sm text-dark" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            Loading disk usage data...
+        </div>
+        `;
+
+        $("#disk_usage_card_content").html(loadingHtml);
+        
+        return fetch(`<%= url_for controller: "api/disk_usage", action: "get" %>`, {redirect: "manual"}).then(res => {
+            if (res.status === 0 && res.type === "opaqueredirect") {
+                redirectToLogin();
+                return Promise.reject(res);
+            }
+            if (!res.ok) { 
+                return Promise.reject(res);
+            }
+            return res.json();
+        }).then(data => {
+            const tableHtml = data.length === 0 ? '<div class="h5 mb-2">No disks available</div>' : data.map((row) => {
+                const diskUsagePercentage = parseInt(row.disk_usage_percentage.split("%")[0]);
+                const fileUsagePercentage = parseInt(row.file_count_percentage.split("%")[0]);
+                let directoryPath = "";
+                if (row.type === "home") {
+                    directoryPath = "<%= ENV["HOME"] %>" || `/home/${row.location}`;
+
+                    if (diskUsagePercentage >= 100 || fileUsagePercentage >= 100) {
+                        showWarning("home-directory-full-warning", `
+                        <h4 class="alert-heading">Home Directory Full</h4>
+                        <p class="mb-0">You have hit the disk usage limit in your home directory. Interactive jobs will not start while your home directory is full.</p>
+                        <a href="<%= files_path("").chomp!("/") %>${directoryPath}" class="alert-link mb-0">Click here to delete files from your home directory to reduce your disk usage.</a>
+                        `, true);
+                    }
+                } else if (row.type === "scratch") {
+                    directoryPath = "/anvil/scratch/<%= @user %>";
+                } else if (row.type === "projects") {
+                    directoryPath = `/anvil/projects/${row.location}`;
+                }
+
+                const barHtml = `
+                <div class="card mx-md-1 mb-3" style="border-radius: 25px; box-shadow: 0 0 5px #ccc;">
+                    <div class="card-body px-3 py-2">
+                        <span class="h5 card-title">
+                            ${row.type} / ${row.location} ${(diskUsagePercentage >= 95 || fileUsagePercentage >= 95) ? `<i class="fa fa-warning text-warning" data-toggle="tooltip" title="You have reached over 95% of your disk${row.type !== "home" ? " and/or file" : ""} usage limit."></i>` : ""}
+                            ${directoryPath === "" ? "" : `<a role="button" href="<%= files_path("").chomp!("/") %>${directoryPath}" class="float-sm-right font-weight-bold badge badge-pill badge-info shadow-sm no-select">View</a>`}
+                        </span>
+                        <div class="progress my-2 shadow-sm w-100" style=" height: 25px;">
+                            <div class="progress-bar font-weight-bold" role="progressbar" style="background-color: ${diskUsagePercentage > 95 ? "#FBA09D" : "#A9CCE3"}; text-align: left; font-size: 16px; color: #2E4052; overflow: visible; width: ${row.disk_usage_percentage};" aria-valuenow="${diskUsagePercentage}" aria-valuemin="0" aria-valuemax="100">&nbsp;Size &#8594; ${row.disk_usage} / ${row.disk_usage_limit}</div>
+                        </div>
+                        ${row.type !== "home" ? `
+                            <div class="progress my-2 shadow-sm w-100" style="height: 25px;">
+                                <div class="progress-bar font-weight-bold" role="progressbar" style="background-color: ${fileUsagePercentage > 95 ? "#FBA09D" : "#A9CCE3"}; text-align: left; font-size: 16px; color: #2E4052; overflow: visible; width: ${row.file_count_percentage === "-" ? 0 : row.file_count_percentage};" aria-valuenow="${fileUsagePercentage}" aria-valuemin="0" aria-valuemax="100">&nbsp;Files &#8594; ${row.file_count} / ${row.file_count_limit} files</div>
+                            </div>
+                        ` : ""}
+                    </div>
+                </div>
+                `;
+                return barHtml;
+            }).join("");
+
+            $("#disk_usage_card_content").html(tableHtml);
+            $('[data-toggle="tooltip"]').tooltip({ boundary: 'window' });
+        }).catch(res => {
+            const errorHtml = `
+            <div class="font-weight-bold h5 text-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                Failed to load
+                <button class="btn btn-danger badge badge-pill shadow-sm" onclick="load_disk_usage()">Try again</button>
+            </div>
+            `;
+
+            $("#disk_usage_card_content").html(errorHtml);
+        });
+    }
+</script>

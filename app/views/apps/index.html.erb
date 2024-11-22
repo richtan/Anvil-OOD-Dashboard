@@ -1,0 +1,38 @@
+<%= render partial: 'batch_connect/shared/breadcrumb',
+locals: {
+  links: [
+  {
+    text: t('dashboard.breadcrumbs_home'),
+    href: root_path
+  },
+  {
+    text: t('dashboard.breadcrumbs_all_apps')
+  }]
+}
+%>
+
+<table class="table apps-table" id="all-apps-table">
+  <thead>
+    <tr id="all-apps-table-header">
+      <th scope="col"><%= t('dashboard.all_apps_table_app_column') %></th>
+      <th scope="col"><%= t('dashboard.all_apps_table_category_column') %></th>
+      <th scope="col"><%= t('dashboard.all_apps_table_sub_category_column') %></th>
+      <%- @metadata_columns.each do |column| -%>
+      <th scope="col"><%= column.to_s.titleize %></th>
+      <%- end -%>
+    </tr>
+  </thead>
+  <tbody>
+    <%- @sys_apps.each do |group| -%>
+      <%= render partial: "app_group_rows", locals: { group: group } %>
+    <% end %>
+
+    <%- @usr_apps.each do |group| -%>
+      <%= render partial: "app_group_rows", locals: { group: group } %>
+    <% end %>
+
+    <%- @dev_apps.each do |group| -%>
+      <%= render partial: "app_group_rows", locals: { group: group } %>
+    <% end %>
+  </tbody>
+</table>

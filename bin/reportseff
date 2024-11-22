@@ -1,0 +1,8 @@
+#!/apps/spack/anvil/apps/python/3.9.5-gcc-11.2.0-vtey2yv/bin/python3.9
+# -*- coding: utf-8 -*-
+import re
+import sys
+from reportseff.console import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

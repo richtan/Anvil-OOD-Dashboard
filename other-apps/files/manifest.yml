@@ -1,0 +1,9 @@
+---
+name: Files App
+description: |-
+  The Open OnDemand Files App
+category: Files
+icon: fa://folder
+role: files
+url: files
+new_window: false

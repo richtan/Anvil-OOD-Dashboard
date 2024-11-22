@@ -1,0 +1,192 @@
+---
+title: "Jupyter Notebook"
+description: |
+  This is a test jupyter app.
+attributes:
+  cluster:
+    widget: select
+    options:
+      - "owens"
+      - "oakley"
+  mode:
+    widget: "radio"
+    label: "The Mode"
+    value: "1"
+    options:
+      - ["1","Jupyter Lab"]
+      - ["0", "Jupyter Notebook"]
+  hidden_change_thing:
+    widget: 'hidden_field'
+    value: 'default'
+  bc_num_slots:
+    max: 20
+    min: 1
+  bc_num_hours:
+    max: 20
+    min: 1
+  node_type:
+    widget: select
+    label: "Node type"
+    options:
+      - [
+          "any",
+          data-hide-cuda-version: true,
+          data-hide-advanced-options: true,
+          # 'any' is the default node_type and here are are overrides for the min & max
+          # in bc_num_slots definition above.
+          data-min-bc-num-slots-for-cluster-owens: 3,
+          data-max-bc-num-slots-for-cluster-owens: 7,
+          data-min-bc-num-slots-for-cluster-oakley: 4,
+          data-max-bc-num-slots-for-cluster-oakley: 8,
+          data-min-gpus: 0,
+          data-max-gpus: 0,
+        ]
+      - [
+          "broken",
+          data-minnn-bc-not-found-for-cluster-mistype: 30,
+          data-max-bc-not-found-for-cluster-mistype: 30,
+          data-maximum-bc-not-found-for-cluster-mistype: 30,
+          data-min-gpus: 0,
+          data-max-gpus: 0,
+        ]
+      - [
+          "gpu",
+          # this bad option is kept here so that in testing, it doesn't throw errors
+          data-option-for-not-real-choice: false,
+          data-max-some-element-for-3rd-element-value: 10,
+          data-max-bc-num-slots-for-cluster-owens: 28,
+          data-min-bc-num-slots-for-cluster-owens: 2,
+          data-max-bc-num-slots-for-cluster-oakley: 40,
+          data-min-bc-num-slots-for-cluster-oakley: 3,
+
+          data-max-bc-num-hours-for-cluster-owens: 88,
+          data-min-bc-num-hours-for-cluster-owens: 80,
+          data-max-bc-num-hours-for-cluster-oakley: 99,
+          data-min-bc-num-hours-for-cluster-oakley: 90,
+
+          data-min-gpus: 1,
+          data-max-gpus: 4,
+        ]
+      - [
+          "hugemem",
+          data-option-for-cluster-oakley: "false",
+          data-hide-cuda-version: true,
+          data-hide-advanced-options: true,
+          data-max-bc-num-slots-for-cluster-owens: 42,
+          data-min-bc-num-slots-for-cluster-owens: 42,
+
+          data-min-gpus: 0,
+          data-max-gpus: 0,
+        ]
+      - [
+          "advanced",
+          data-option-for-cluster-oakley: "false",
+          data-hide-cuda-version: true,
+          data-max-bc-num-slots-for-cluster-oakley: 9001,
+
+          data-min-gpus: 0,
+          data-max-gpus: 0,
+        ]
+      # this node type is the same for both clusters, so there's no 'for-cluster-...' clause
+      - [
+          "same",
+          # note that all these values are strings
+          data-hide-cuda-version: "true",
+          data-hide-advanced-options: "true",
+          data-min-bc-num-slots: "100",
+          data-max-bc-num-slots: "200",
+          data-min-bc-num-hours: "444",
+          data-max-bc-num-hours: "555",
+
+          data-min-gpus: 0,
+          data-max-gpus: 0,
+        ]
+      - [
+          "other-40ish-option",
+          data-hide-advanced-options: true,
+          data-max-bc-num-slots-for-cluster-owens: "40",
+          data-max-bc-num-slots-for-cluster-oakley: "48",
+
+          data-min-gpus: 0,
+          data-max-gpus: 0,
+        ]
+  python_version:
+    # let's set the account used by the python version for some reason
+    widget: select
+    options:
+      - [
+          "2.7",
+          data-option-for-node-type-advanced: false,
+          data-option-for-node-type-other-40ish-option: false,
+          data-set-bc-account: 'python27'
+        ]
+      - [
+          "3.1",
+          data-option-for-node-type-advanced: false,
+          data-option-for-node-type-other-40ish-option: false,
+          data-set-bc-account: 'python31'
+        ]
+      - [
+          "3.2",
+          data-option-for-node-type-advanced: false,
+          data-option-for-node-type-other-40ish-option: false,
+          data-set-bc-account: 'python32'
+        ]
+      - [
+          "3.6",
+          data-set-hidden-change-thing: 'python36'
+        ]
+      - [
+          "3.7",
+          data-set-hidden-change-thing: 'python37',
+        ]
+      - [
+          "4.0.nightly",
+          data-set-hidden-change-thing: 'python4nightly',
+        ]
+  cuda_version:
+    widget: select
+    options:
+      - "4"
+      - "7"
+      - "38"
+  classroom:
+    widget: select
+    options:
+      - [ 'Physics 1234', 'physics_1234' ]
+      - [ 'Astronomy 5678', 'astronomy_5678' ]
+      - [ 'Economics 8846', 'astronomy-with/other-characters/8846.31.4' ]
+  classroom_size:
+    widget: select
+    options:
+      - [ 'small', 'small' ]
+      - [
+          'medium', 'medium',
+          data-option-for-classroom-astronomy-5678: false,
+          data-option-for-classroom-astronomy-with/other-characters/8846.31.4: false,
+        ]
+      - [
+          'large', 'large',
+          data-option-for-classroom-astronomy-5678: false,
+          data-option-for-classroom-astronomy-with/other-characters/8846.31.4: false,
+        ]
+  gpus:
+    widget: number_field
+    min: 0
+    max: 4
+    value: 0
+form:
+  - cluster
+  - bc_num_hours
+  - bc_num_slots
+  - mode
+  - node_type
+  - gpus
+  - bc_account
+  - bc_email_on_started
+  - python_version
+  - cuda_version
+  - hidden_change_thing
+  - classroom
+  - classroom_size
+  - advanced_options

@@ -1,0 +1,19 @@
+<%# Random port from 10000 - 65535 deterministically generated %>
+<% localport = Digest::SHA1.hexdigest("#{connect.host}:#{connect.port}").to_i(16) % 55535 + 10000 %>
+
+<% if browser.platform == :windows %>
+
+  <%= render partial: 'batch_connect/sessions/connections/native_vnc_windows.html.erb', :locals => { :connect => connect, :localport => localport } %>
+
+<% elsif browser.platform == :mac %>
+
+  <%= render partial: 'batch_connect/sessions/connections/native_vnc_mac.html.erb', :locals => { :connect => connect, :localport => localport } %>
+
+<% elsif browser.platform == :linux %>
+
+  <%= render partial: 'batch_connect/sessions/connections/native_vnc_linux.html.erb', :locals => { :connect => connect, :localport => localport } %>
+
+<% else %>
+  We do not currently support documentation for connecting to a VNC session
+  with a native client for your operating system.
+<% end %>

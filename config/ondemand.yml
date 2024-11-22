@@ -1,0 +1,10 @@
+dashboard_layout:
+  rows:
+    - columns:
+      - width: 8
+        widgets:
+          - pinned_apps
+          - disk_usage
+          - balance_usage
+          - queue_status
+          - recent_jobs

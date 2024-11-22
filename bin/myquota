@@ -1,0 +1,1182 @@
+#!/bin/bash
+#
+# myquota
+#
+# Display the home, scratch and remote scratch usage in a human readable format
+#
+# Copyright 2011 James Wilkinson, Purdue University
+#
+# Permission to use, copy, modify, and distribute this software for
+# any purpose with or without fee is hereby granted, provided that
+# the above copyright notice and this permission notice appear in
+# all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+# WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+# AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+# LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+# NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+# CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+set -o pipefail
+export PATH=/usr/site/rcac/support_scripts:/usr/site/rcac/bin:/bin:/usr/bin:/usr/local/bin:/sbin
+me=${BASH_SOURCE##*/}
+
+function print_usage() {
+	echo "Usage:  $me [username]"
+	echo "        $me -h   (help)"
+}
+
+function print_descr() {
+	echo ""
+	cat <<-END_DESCR
+		Display information about user quota on various filesystems.
+
+		Options:
+		    -h	Display this help.
+	END_DESCR
+	echo ""
+}
+
+while getopts h opt ; do
+	case $opt in
+		h)      echo ""
+			print_usage
+			print_descr
+			exit 0;;
+		\?)	print_usage 1>&2
+			exit 1;;
+	esac
+done
+shift `expr $OPTIND - 1`
+
+# Handle optional user name parameter.
+if [ "x${1}" == "x" ]; then
+	USERNAME=`whoami`
+	NOHOME=0
+else
+
+	# Only allow for cross user queries if running as root
+	if [[ $EUID -ne 0 && "${1}" != "`whoami`" ]]; then
+		myquota=`realpath -s $0`
+                exec sudo $myquota $@
+	fi
+	USERNAME=$1
+	NOHOME=0
+fi
+
+if [ `echo "${USERNAME}" | grep "^-.*" | wc -l` -eq 1 ]; then
+	echo "myquota:  Error! Invalid username" 1>&2
+	exit 1
+fi
+
+# Check if we were asked to report our own usage
+if [ "${USERNAME}" == "`whoami`" ]; then
+	NOHOME=0
+fi
+
+id -u ${USERNAME} > /dev/null 2> /dev/null
+if [ $? -ne 0 ]; then
+	echo "myquota:  Error! Invalid username" 1>&2
+	exit 1
+fi
+
+# stat the homedir to make sure it is mounted
+stat `eval echo ~$USERNAME` >& /dev/null
+
+MYSCRATCH=`myscratch $USERNAME`
+# Sleep for a brief moment to allow local scratch to automount
+sleep .1
+
+SAVEIFS=$IFS
+IFS=$'\n'
+declare -a QUOTARRAY
+
+HOMEREGEX='u[0-9]+'
+HOMEHOMEREGEX='^/home/.+'
+SCRATCHARRAY=( ) 		# Non-Lustre scratches only
+# Automate building of LUSTREARRAY - trawl mounting table for Lustre entries.
+
+LUSTREARRAY=( )
+LUSTREMOUNTS=( )
+
+ZFSSCRATCHARRAY=( )
+ZFSHOMEARRAY=( anvil )
+
+GPFSSCRATCHARRAY=( )
+GPFSSCRATCHFSARRAY=( )
+
+GPFSNATIVESCRATCHARRAY=( anvil )
+GPFSNATIVESCRATCHFSARRAY=( anvil:scratch )
+
+
+GPFSSCRATCHFSARRAY=( "${GPFSSCRATCHFSARRAY[@]}" "${GPFSNATIVESCRATCHFSARRAY[@]}" )
+GPFSSCRATCHARRAY=( "${GPFSSCRATCHARRAY[@]}" "${GPFSNATIVESCRATCHARRAY[@]}" )
+ALLSCRATCHARRAY=( "${SCRATCHARRAY[@]}" "${LUSTREARRAY[@]}" "${GPFSSCRATCHARRAY[@]}" )
+
+DEPOTS_DIRECTORY="/depot"
+
+# Anchored shared project spaces (non-Depot) - e.g. /anvil/projects/$project.
+# Each project's subdir will be a separate GPFS fileset under corresponding
+# FS anchor (i.e. to query them we would use 'anvil:pg0000', 'anvil:pg0001',
+# etc).  The checking code will assemble correct fileset name.
+ANCHOR="/anvil"
+ANCHORED_GPFS_SHAREDARRAY=( projects )
+ANCHORED_GPFS_SHAREDFSARRAY=( anvil:projects )
+
+ALL_ANCHORED_ARRAY=( "${ANCHORED_GPFS_SHAREDARRAY[@]}" )
+
+
+# Default field widths... will be adjusted later if necessary.
+TS=9  # Type space
+YS=13  # Filesystem space
+SS=10  # Size space
+SLS=9 # Size Limit Space
+FS=13  # Files space
+FLS=8 # File Limit Space
+US=7   # Use space
+
+# Numeric format for sizes (SIZELIMIT and '0' are also expressed in this
+# format when compared to 0 before computing %usage).
+SIZEFMT="%0.1f"
+
+# Returns human readable number given a number and its base
+# Syntax: bytesToH ${number} ${magnitude} ${returnvar}
+# Ex: "bytesToH 500000000 1 result" sets ${result} to 476.8GB
+function bytesToH () {
+	local __resultvar=$3
+	declare -a METRIC=(' B' 'KB' 'MB' 'GB' 'TB' 'PB' 'XB')
+	local MAGNITUDE=$2
+	local PRECISION="scale=1"
+	local UNITS=`echo $1 | tr -d ','`
+	# Massage it if it's a number
+	while [[ $UNITS =~ [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+) && ${UNITS/.*} -ge 1024 ]]; do
+		UNITS=`echo "$PRECISION; $UNITS/1024" | bc`
+		((MAGNITUDE++))
+	done
+	local result="$UNITS${METRIC[$MAGNITUDE]}"
+	if [[ "$__resultvar" ]]; then
+		eval $__resultvar="'$result'"
+	else
+		echo "$result"
+	fi
+}
+
+# Returns human readable number given a number and its base
+# Syntax: numToH ${number} ${magnitude} ${returnvar}
+# Ex: "numToH 500000000 1 result" sets ${result} to 500G
+function numToH () {
+	local __resultvar=$3
+	declare -a METRIC=(' ' 'K' 'M' 'G' 'T' 'P' 'X')
+	local MAGNITUDE=$2
+	local PRECISION="scale=0"
+	local UNITS=`echo $1 | tr -d ','`
+	# Massage it if it's a number
+	while [[ $UNITS =~ [+-]?([0-9]+([.][0-9]*)?|[.][0-9]+) && ${UNITS/.*} -ge 1024 ]]; do
+		UNITS=`echo "$PRECISION; $UNITS/1000" | bc`
+		((MAGNITUDE++))
+	done
+	local result="$UNITS${METRIC[$MAGNITUDE]}"
+	if [[ "$__resultvar" ]]; then
+		eval $__resultvar="'$result'"
+	else
+		echo "$result"
+	fi
+}
+
+# Adds commas to a long number
+# Syntax: addCommas ${number} ${returnVar}
+# Ex. "addCommas 1234 result" sets ${result} to 1,234
+function addCommas () {
+	local __resultvar=$2
+	local result=`echo $1 | sed -r ':L;s=\b([0-9]+)([0-9]{3})\b=\1,\2=g;t L'`
+	if [[ "$__resultvar" ]]; then
+		eval $__resultvar="'$result'"
+	else
+		echo "$result"
+	fi
+}
+
+# Checks if the value is present in supplied list, returns the index of
+# first appearance (0-based, in bash fashion), or -1 if not present.
+# Note: comparing as strings, so 10 and 10.0 are different!
+# Syntax: indInArray ${value} "AAA" "BBB" "CCC" ...
+#         indInArray ${value} "${ARRAY[@]}"
+# Ex.  "indInArray X  ZZ YY XX WW" returns -1 (not in list)
+#      "indInArray XX ZZ YY XX WW" returns 2 (third element)
+#      "indInArray XX" or "indInArray" both return -1 (not in list)
+function indInArray () {
+	local VAL="$1"
+	shift
+	declare -a ARRAY=( "$@" )
+	local IND=-1
+	local i
+	for (( i=0; i<${#ARRAY[@]}; i++ )); do
+		if [[ "${ARRAY[$i]}" == "$VAL" ]]; then
+			IND=$i
+			break
+		fi
+	done
+	echo "$IND"
+}
+
+# This cluster name.  The new <nodes>.CLUSTER.rcac.purdue.edu naming scheme.
+RESOURCE=`hostname -f | cut -d '.' -f 2`
+
+# Get the hosts user has accounts on.
+# On RCAC/ACMaint clusters this would have been
+#    USERHOSTSARRAY=( `ldapsearch -x "uid=$USERNAME" 2>/dev/null | grep '^host:' | awk '{print $2}'` )
+#    USERHOSTSARRAY=( ${USERHOSTSARRAY[@]%%.*} ) 		# shorten hostnames
+# But life is easier on Anvil.
+USERHOSTSARRAY=( "$RESOURCE" )
+
+# Force scratch automounting
+for (( I=0;I<${#ALLSCRATCHARRAY[@]};I++ )); do
+	FILESYS="${ALLSCRATCHARRAY[I]}"
+	`cd "/scratch/${FILESYS}" 2>/dev/null`
+done
+
+
+# Embrace the /scratch/CLUSTERNAME paradigm and generate an array of
+# Lustre-to-cluster mapping for each Lustre:
+# 	LUST2CLUSTARRAY[0] = "conte"
+# 	LUST2CLUSTARRAY[1] = "carter,peregrine1,hansen", etc.
+# When multiple clusters use the same Lustre, their names are comma-separated
+# (if you change this, remember to change regexifying code '${PRINTNAME//,/|}'
+# in the LFS handling section!).
+# Array entries follow the order of LUSTREARRAY, so lookup is easy.
+declare -a LUST2CLUSTARRAY
+let LFSWIDTH=0
+for (( I=0;I<${#LUSTREARRAY[@]};I++ )); do
+	# Loop over all mounts and grab all dirnames (a.k.a. cluster names)
+	# that refer to this particular Lustre.
+	# Note: only going by mounts, not by symlinks or anything else.
+	for (( J=0;J<${#LUSTREMOUNTS[@]};J++ )); do
+		LINE=${LUSTREMOUNTS[J]} 	# Input: "lustreD /scratch/conte"
+		lust=${LINE%% *} 		# Get "lustreD" part
+		clust=`echo "${LINE%% /}" | cut -d '/' -f 3` # Get "conte" part
+		[[ -n "$lust" ]] || continue 	# sanity
+
+		# Is this the right Lustre?
+		if [[ "${LUSTREARRAY[I]}" != "$lust" ]]; then
+			continue
+		fi
+
+		# Only include names for clusters where user has an account.
+		if [[ $(indInArray "$clust" "${USERHOSTSARRAY[@]}") -ne -1 ]]; then
+			if [ x"${LUST2CLUSTARRAY[I]}" == x"" ]; then
+				LUST2CLUSTARRAY[I]="$clust"
+			else
+				LUST2CLUSTARRAY[I]="${LUST2CLUSTARRAY[I]},$clust"
+			fi
+		fi
+	done
+
+
+	# Fall back to original Lustre name if no Lustre->cluster
+	# correspondence can be deduced.
+	LUST2CLUSTARRAY[I]=${LUST2CLUSTARRAY[I]:-${LUSTREARRAY[I]}}
+
+	# And find the maximum length of an entry.
+	if [[ ${#LUST2CLUSTARRAY[I]} -gt $LFSWIDTH ]]; then
+		LFSWIDTH=${#LUST2CLUSTARRAY[I]}
+	fi
+done
+
+# Adjust filesystem column width if necessary.
+if [[ $LFSWIDTH -ne 0 && $LFSWIDTH -gt $YS ]]; then
+	if [[ $LFSWIDTH -le 15 ]]; then
+		# Minor adjustments.
+		# This should fit 'hansen,carter'.
+		YS=15
+		FS=11
+
+	elif [[ $LFSWIDTH -le 17 ]]; then
+		# A bit more adjustments, but still within 80-chars window.
+		# This should fit 'hansen,peregrine1' or 'carter,peregrine1'.
+		YS=17
+		SS=9
+		FS=10
+
+	else
+		# Ugh, don't even bother with 80 chars, just expand at will.
+		# (only a handful of people with 'carter,hansen,peregrine1').
+		((YS=LFSWIDTH+1))
+	fi
+fi
+
+# Display table header
+printf "\n"
+printf "%-${TS}s%-${YS}s%${SS}s%${SLS}s%${US}s%${FS}s %${FLS}s %${US}s\n" "Type" "Location" "Size" "Limit" "Use" "Files" "Limit" "Use"
+for (( I=0;I<${TS}+${YS}+${SS}+${SLS}+${US}+${FS}+1+${FLS}+1+${US};I++)); do
+	printf "="
+done
+printf "\n"
+
+# Process each quota
+IFS=$SAVEIFS
+let SKIP=0
+declare -a HOMEARR
+declare -a SCRATCHARR
+declare -a OTHERARR
+declare -a DEPOTARR
+declare -a SHAREDARR
+let HOMECOUNT=-1
+let SCRATCHCOUNT=-1
+let OTHERCOUNT=-1
+let DEPOTCOUNT=0
+let SHAREDCOUNT=-1
+
+# Parse and print Home quotas if no home already found
+ZFSHOME=0
+for ZFSHOMERESOURCE in $ZFSHOMEARRAY; do
+	if [[ $ZFSHOMERESOURCE == $RESOURCE ]]; then
+		ZFSHOME=1
+	fi
+done
+HOMEDIR=`eval echo ~$USERNAME` >& /dev/null
+if [[ $HOMECOUNT == -1 && $HOMEDIR =~ $HOMEHOMEREGEX ]]; then
+	HOMECOUNT=0
+	if [ $NOHOME -eq 0 ]; then
+		if [ $ZFSHOME -eq 1 ]; then
+			HOME=`ssh -x -o "StrictHostKeyChecking=no" -o "ConnectTimeout=10" warden.${RESOURCE} "/bin/sh -c \"/sbin/zfs get -p userused@$USERNAME 2> /dev/null | grep 'home ' 2> /dev/null; /sbin/zfs get -p userquota@$USERNAME 2> /dev/null | grep 'home ' 2> /dev/null\"" 2> /dev/null`
+			ZFS_STATUS=$?
+
+			# If ZFS quota inaccessible, continue to next quota
+			if [[ $ZFS_STATUS -ne 0 ]]; then
+				HOMEARR[0]="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"home\" \"${USERNAME}\" \"Home directory quotas are currently inaccessible.\"`"
+			else
+				# Display type and name of filesystem
+				HOMEARR[0]="`printf \"%-${TS}s%-${YS}s\" \"home\" \"${USERNAME}\"`"
+
+				SIZE=`echo ${HOME} | awk '{ print $3 }'`
+				let SIZE=${SIZE}/1024
+				bytesToH ${SIZE} 1 SIZEH
+				RESULT="`printf \"%${SS}s\" \"${SIZEH}\"`"
+				HOMEARR[0]+="${RESULT}"
+
+				SIZELIMIT=`echo ${HOME} | awk '{ print $7 }'`
+				let SIZELIMIT=${SIZELIMIT}/1024
+				if [ "$SIZELIMIT" -ne "0" ]; then
+					SIZEPER=`echo "scale=10; 100*${SIZE}/${SIZELIMIT}" | bc`
+					if [ "`echo ${SIZEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						SIZEPER=`printf "%0.2f" "${SIZEPER}"`
+					else
+						SIZEPER=`printf "%.0f" "${SIZEPER}"`
+					fi
+				fi
+				bytesToH ${SIZELIMIT} 1 SIZELIMITH
+				RESULT="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${SIZEPER}%\"`"
+				HOMEARR[0]+="${RESULT}"
+
+				RESULT="`printf \"%${FS}s \" \"-\"`"
+				HOMEARR[0]+="${RESULT}"
+			fi
+		else
+			HOME=`mmquota -u $USERNAME -f persistent:home 2>/dev/null`
+			if [ $? -ne 0 ]; then
+				HOMEARR[0]="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"home\" \"${USERNAME}\" \"Home directory quotas are currently inaccessible.\"`"
+			else
+
+				# Display type and name of filesystem
+				HOMEARR[0]="`printf \"%-${TS}s%-${YS}s\" \"home\" \"${USERNAME}\"`"
+
+				# Display blocks (size)
+				ITEM=`echo "${HOME}" | grep '^persistent home'`
+				SIZE=`echo "${ITEM}" | awk '{ print $4 }'`
+				SIZE=`printf "$SIZEFMT" "${SIZE}"`
+				UNITS="K"
+				if [ "$UNITS" = "P" ]; then
+					MAGNITUDE=5
+				elif [ "$UNITS" = "T" ]; then
+					MAGNITUDE=4
+				elif [ "$UNITS" = "G" ]; then
+					MAGNITUDE=3
+				elif [ "$UNITS" = "M" ]; then
+					MAGNITUDE=2
+				elif [ "$UNITS" = "K" ]; then
+					MAGNITUDE=1
+				else
+					MAGNITUDE=0
+				fi
+				# Reports double
+				SIZE=`echo "$SIZE / 2" | bc`
+				SIZEBYTES=`echo "1024 ^ ${MAGNITUDE} * ${SIZE}" | bc`
+
+				bytesToH ${SIZE} ${MAGNITUDE} SIZEH
+				HOMEARR[0]+="`printf \"%${SS}s\" \"${SIZEH}\"`"
+
+				# Display Size limit and percent use
+				SIZELIMIT=`echo "${ITEM}" | awk '{ print $6 }'`
+				SIZELIMIT=`printf "$SIZEFMT" "${SIZELIMIT}"`
+				MYZERO=`printf "$SIZEFMT" 0` 	# Same precision as SIZELIMIT
+				UNITS="K"
+				if [ "$UNITS" = "P" ]; then
+					MAGNITUDE=5
+				elif [ "$UNITS" = "T" ]; then
+					MAGNITUDE=4
+				elif [ "$UNITS" = "G" ]; then
+					MAGNITUDE=3
+				elif [ "$UNITS" = "M" ]; then
+					MAGNITUDE=2
+				elif [ "$UNITS" = "K" ]; then
+					MAGNITUDE=1
+				else
+					MAGNITUDE=0
+				fi
+				# Reports double
+				SIZELIMIT=`echo "$SIZELIMIT / 2" | bc`
+				LIMITBYTES=`echo "1024 ^ ${MAGNITUDE} * ${SIZELIMIT}" | bc`
+
+				# This is string comparison (so use formatted $MYZERO, not '0')
+				if [ "$SIZELIMIT" != "$MYZERO" ]; then
+					SIZEPER=`echo "scale=10; 100*$SIZEBYTES/$LIMITBYTES" | bc`
+					if [ "`echo ${SIZEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						SIZEPER=`printf "%0.2f" "${SIZEPER}"`
+					else
+						SIZEPER=`printf "%.0f" "${SIZEPER}"`
+					fi
+				else
+					SIZEPER=0
+				fi
+				bytesToH ${SIZELIMIT} ${MAGNITUDE} SIZELIMITH
+				HOMEARR[0]+="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+				HOMEARR[0]+="`printf \"%${US}s\" \"${SIZEPER}%\"`"
+
+				FILES=`echo "${ITEM}" | awk '{ print $10 }'`
+				FILES=`echo "scale=0; $FILES/1000" | bc`
+				addCommas ${FILES} FILEH
+				RESULT="`printf \"%${FS}sk\" \"${FILEH}\"`"
+				HOMEARR[0]+="${RESULT}"
+			fi
+		fi
+	else
+		# Isilon information is not available (we were probably asked to give quotas for a different user)
+
+		# Display type and name of filesystem
+		HOMEARR[0]="`printf \"%-${TS}s%-${YS}s\" \"home\" \"${USERNAME}\"`"
+
+		# Display "?" because that's all we've got
+		HOMEARR[0]+="`printf \"%${SS}s\" \"?  \"`"
+		HOMEARR[0]+="`printf \"%${SLS}s\" \"?  \"`"
+		HOMEARR[0]+="`printf \"%${US}s\" \"? \"`"
+	fi
+	# Display files, files limit, and percent use
+	# Isilon has no file restrictions, so these are all empty.
+	HOMEARR[0]+="`printf \"%${FLS}s \" \"-\"`"
+	HOMEARR[0]+="`printf \"%${US}s\" \"- \"`"
+fi
+
+# Parse and print GPFS output
+# Note: on older clusters we had a GPFS that was exported via NFS, so needed
+# the 'mmquota' wrapper to SSH to the management host and query quota there.
+# On newer ones like Anvil we have native GPFS.  This removes the need for SSH
+# and we _could_ get by without the wrapper - but keeping it just to avoid
+# coding extra logics into myquota.
+for (( I=0;I<${#GPFSSCRATCHARRAY[@]};I++ )); do
+	if [ ! -d "/scratch/${GPFSSCRATCHARRAY[I]}" -a ! -d "/${GPFSSCRATCHARRAY[I]}/scratch" ]; then
+		continue
+	fi
+
+	# Skip scratches user doesn't have access to
+	if [[ $(indInArray "${GPFSSCRATCHARRAY[I]}" "${USERHOSTSARRAY[@]}") -eq -1 ]]; then
+		continue
+	fi
+
+	# Convert gXX/gpfsX into gXX:gpfsX
+	MMFS=${GPFSSCRATCHFSARRAY[I]/"/"/:}
+
+	# Get GPFS output and save exit status
+	# Note: using '-Y' (colon-separated machine-parseable output format)
+	# because default human-readable output may or may not have a 'Fileset'
+	# column, which would shift column numbers and confuse parsing code.
+	MMLS=`/usr/local/bin/mmquota -Y -u $USERNAME -f $MMFS | tail -n +2 2> /dev/null`
+	MMLS_STATUS=$?
+
+	# If MMLS inaccessible, continue to next MMLS
+	if [[ $MMLS_STATUS -ne 0 ]]; then
+		PRINTNAME=${GPFSSCRATCHARRAY[I]}
+		if [[ $SCRATCHCOUNT == -1 ]]; then
+			let SCRATCHCOUNT+=1
+			SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"scratch\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		else
+			let OTHERCOUNT+=1
+			OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"other\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		fi
+		continue
+	fi
+
+	let COUNT=0
+	let FSTYPE=-1
+	for ITEM in $(echo "$MMLS" | tr ':' '\n'); do
+		case $COUNT in
+			0) # Check if local or remote scratch and display
+				PRINTNAME=${GPFSSCRATCHARRAY[I]}
+				TEST=${PRINTNAME//,/|}  # Commas to '|' in regexp
+				if [[ ${MYSCRATCH} =~ ${TEST} ]]; then
+					let SCRATCHCOUNT+=1
+					SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"scratch\" \"${PRINTNAME}\"`"
+					FSTYPE=1
+				else
+					let OTHERCOUNT+=1
+					OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"other\" \"${PRINTNAME}\"`"
+					FSTYPE=2
+				fi
+			;;
+			8) # Display blocks (size)
+				let SIZE=${ITEM}
+				bytesToH ${ITEM} 1 SIZEH
+				RESULT="`printf \"%${SS}s\" \"${SIZEH}\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			10) # Display Limit
+				let SIZELIMIT=${ITEM}
+				if [ "$SIZELIMIT" -ne "0" ]; then
+					SIZEPER=`echo "scale=10; 100*${SIZE}/${SIZELIMIT}" | bc`
+					if [ "`echo ${SIZEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						SIZEPER=`printf "%0.2f" "${SIZEPER}"`
+					else
+						SIZEPER=`printf "%.0f" "${SIZEPER}"`
+					fi
+				else
+					# Limit is 0, skip this entry and undo the modifications already made
+					case $FSTYPE in
+						1) # Scratch
+							SIZEPER="0"
+						;;
+						2) # Other
+							OTHERARR[$OTHERCOUNT]=""
+							((OTHERCOUNT--))
+							break
+						;;
+					esac
+				fi
+				bytesToH ${ITEM} 1 SIZELIMITH
+				RESULT="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${SIZEPER}%\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			13) # Display files
+				ITEM=${ITEM%\*}
+				let FILES=${ITEM}
+				ITEM=`echo "scale=0; $ITEM/1000" | bc`
+				addCommas ${ITEM} FILEH
+				RESULT="`printf \"%${FS}sk\" \"${FILEH}\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			15) # Display files limit
+				let FILESLIMIT=${ITEM}
+				if [ "$FILESLIMIT" -ne "0" ]; then
+					FILEPER=`echo "scale=10; 100*${FILES}/${FILESLIMIT}" | bc`
+					if [ "`echo ${FILEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						FILEPER=`printf "%0.2f" "${FILEPER}"`
+					else
+						FILEPER=`printf "%.0f" "${FILEPER}"`
+					fi
+				else
+					let FILEPER=0
+				fi
+				ITEM=`echo "scale=0; $ITEM/1000" | bc`
+				addCommas ${ITEM} FILELIMITH
+				RESULT="`printf \"%${FLS}sk\" \"${FILELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${FILEPER}%\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+		esac
+		((COUNT++))
+	done
+done
+
+# Parse and print LFS output
+for (( I=0;I<${#LUSTREARRAY[@]};I++ )); do
+	# Some clusters no longer have a /scratch/lustreX symlink (just the
+	# cluster name mount).  Try to be flexible now: if there's a legacy
+	# /scratch/lustreX, then use it.  Else try to use /scratch/<cluster>.
+	lust="${LUSTREARRAY[I]}"
+	clust="${LUST2CLUSTARRAY[I]%%,*}" 	# pick the first one if several
+	if [ -d "/scratch/$lust" ]; then
+		FSNAME="$lust"
+	elif [ -d "/scratch/$clust" ]; then
+		FSNAME="$clust"
+	else
+		continue
+	fi
+
+
+	# Get LFS output and save exit status
+	LFS=`lfs quota -u $USERNAME /scratch/$FSNAME 2>/dev/null`
+	LFS_STATUS=$?
+
+	# look for an error message in the output
+	ERROR_CHECK=`echo $LFS | grep "Some errors happened when getting quota info."`
+	LFS_ERROR_MESSAGE=$?
+
+	# If LFS inaccessible, continue to next LFS
+	if [[ $LFS_STATUS != 0 || $LFS_ERROR_MESSAGE == 0 ]]; then
+		TEST=${LUSTREARRAY[I]}
+		PRINTNAME=${LUST2CLUSTARRAY[I]:-$TEST}
+		if [[ $SCRATCHCOUNT == -1 ]]; then
+			let SCRATCHCOUNT+=1
+			SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"scratch\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		else
+			let OTHERCOUNT+=1
+			OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"other\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		fi
+		continue
+	fi
+	LFS=`echo "$LFS" | tail -n +3 2>/dev/null`
+
+	let COUNT=0
+	let FSTYPE=-1
+	for ITEM in ${LFS}; do
+		case $COUNT in
+			0) # Check if local or remote scratch and display
+				LNAME=`echo $ITEM | cut -d '/' -f3`  	# 'lustreA'
+				LNAME=${LNAME:-${LUSTREARRAY[I]}} 	# safety
+				PRINTNAME=${LUST2CLUSTARRAY[I]:-$LNAME}
+				TEST=${PRINTNAME//,/|}  # Commas to '|' in regexp
+				if [[ ${MYSCRATCH} =~ ${TEST} ]]; then
+					let SCRATCHCOUNT+=1
+					SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"scratch\" \"${PRINTNAME}\"`"
+					FSTYPE=1
+				else
+					let OTHERCOUNT+=1
+					OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"other\" \"${PRINTNAME}\"`"
+					FSTYPE=2
+				fi
+			;;
+			1) # Display blocks (size)
+				ITEM=${ITEM%\*}
+				let SIZE=${ITEM}
+				bytesToH ${ITEM} 1 SIZEH
+				RESULT="`printf \"%${SS}s\" \"${SIZEH}\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			3) # Display Limit
+				let SIZELIMIT=${ITEM}
+				if [ "$SIZELIMIT" -ne "0" ]; then
+					SIZEPER=`echo "scale=10; 100*${SIZE}/${SIZELIMIT}" | bc`
+					if [ "`echo ${SIZEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						SIZEPER=`printf "%0.2f" "${SIZEPER}"`
+					else
+						SIZEPER=`printf "%.0f" "${SIZEPER}"`
+					fi
+				else
+					# Limit is 0, skip this entry and undo the modifications already made
+					case $FSTYPE in
+						1) # Scratch
+							SIZEPER="0"
+						;;
+						2) # Other
+							OTHERARR[$OTHERCOUNT]=""
+							((OTHERCOUNT--))
+							break
+						;;
+					esac
+				fi
+				bytesToH ${ITEM} 1 SIZELIMITH
+				RESULT="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${SIZEPER}%\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			5) # Display files
+				ITEM=${ITEM%\*}
+				let FILES=${ITEM}
+				ITEM=`echo "scale=0; $ITEM/1000" | bc`
+				addCommas ${ITEM} FILEH
+				RESULT="`printf \"%${FS}sk\" \"${FILEH}\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			7) # Display files limit
+				let FILESLIMIT=${ITEM}
+				if [ "$FILESLIMIT" -ne "0" ]; then
+					FILEPER=`echo "scale=10; 100*${FILES}/${FILESLIMIT}" | bc`
+					if [ "`echo ${FILEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						FILEPER=`printf "%0.2f" "${FILEPER}"`
+					else
+						FILEPER=`printf "%.0f" "${FILEPER}"`
+					fi
+				else
+					let FILEPER=0
+				fi
+				ITEM=`echo "scale=0; $ITEM/1000" | bc`
+				addCommas ${ITEM} FILELIMITH
+				RESULT="`printf \"%${FLS}sk\" \"${FILELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${FILEPER}%\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+		esac
+		((COUNT++))
+	done
+done
+
+# Parse and print RPC quotas outpus
+for (( I=0;I<${#SCRATCHARRAY[@]};I++ )); do
+	if [ ! -d "/scratch/${SCRATCHARRAY[I]}" ]; then
+		continue
+	fi
+
+	# Skip scratches user doesn't have access to
+	if [[ $(indInArray "${SCRATCHARRAY[I]}" "${USERHOSTSARRAY[@]}") -eq -1 ]]; then
+		continue
+	fi
+
+	# Get RPC quota output and save exit status
+	# Unfortunately, can't simultaneously specify both username and 
+	# filesystem for the RPC quota command.  So we specify username,
+	# and then fish for the filesystem string in the produced output.
+	RPC=`quota -w -p -v -u $USERNAME 2> /dev/null | tail -n +3 | grep "scratch" | grep "${SCRATCHARRAY[I]}" 2> /dev/null`
+	RPC_STATUS=$?
+
+	# If RPC quota inaccessible, continue to next quota
+	if [[ $RPC_STATUS -ne 0 ]]; then
+		PRINTNAME=${SCRATCHARRAY[I]}
+		if [[ $SCRATCHCOUNT == -1 ]]; then
+			let SCRATCHCOUNT+=1
+			SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"scratch\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		else
+			let OTHERCOUNT+=1
+			OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"other\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		fi
+		continue
+	fi
+
+	let COUNT=0
+	let FSTYPE=-1
+	for ITEM in ${RPC}; do
+		case $COUNT in
+			0) # Check if local or remote scratch and display
+				PRINTNAME=${SCRATCHARRAY[I]}
+				TEST=${PRINTNAME//,/|}  # Commas to '|' in regexp
+				if [[ ${MYSCRATCH} =~ ${TEST} ]]; then
+					let SCRATCHCOUNT+=1
+					SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"scratch\" \"${PRINTNAME}\"`"
+					FSTYPE=1
+				else
+					let OTHERCOUNT+=1
+					OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"other\" \"${PRINTNAME}\"`"
+					FSTYPE=2
+				fi
+			;;
+			1) # Display blocks (size)
+				let SIZE=${ITEM}
+				bytesToH ${ITEM} 1 SIZEH
+				RESULT="`printf \"%${SS}s\" \"${SIZEH}\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			3) # Display Limit
+				let SIZELIMIT=${ITEM}
+				if [ "$SIZELIMIT" -ne "0" ]; then
+					SIZEPER=`echo "scale=10; 100*${SIZE}/${SIZELIMIT}" | bc`
+					if [ "`echo ${SIZEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						SIZEPER=`printf "%0.2f" "${SIZEPER}"`
+					else
+						SIZEPER=`printf "%.0f" "${SIZEPER}"`
+					fi
+				else
+					# Limit is 0, skip this entry and undo the modifications already made
+					case $FSTYPE in
+						1) # Scratch
+							SIZEPER="0"
+						;;
+						2) # Other
+							OTHERARR[$OTHERCOUNT]=""
+							((OTHERCOUNT--))
+							break
+						;;
+					esac
+				fi
+				bytesToH ${ITEM} 1 SIZELIMITH
+				RESULT="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${SIZEPER}%\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			5) # Display files
+				ITEM=${ITEM%\*}
+				let FILES=${ITEM}
+				ITEM=`echo "scale=0; $ITEM/1000" | bc`
+				addCommas ${ITEM} FILEH
+				RESULT="`printf \"%${FS}sk\" \"${FILEH}\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			6) # Display files limit
+				let FILESLIMIT=${ITEM}
+				if [ "$FILESLIMIT" -ne "0" ]; then
+					FILEPER=`echo "scale=10; 100*${FILES}/${FILESLIMIT}" | bc`
+					if [ "`echo ${FILEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						FILEPER=`printf "%0.2f" "${FILEPER}"`
+					else
+						FILEPER=`printf "%.0f" "${FILEPER}"`
+					fi
+				else
+					let FILEPER=0
+				fi
+				ITEM=`echo "scale=0; $ITEM/1000" | bc`
+				addCommas ${ITEM} FILELIMITH
+				RESULT="`printf \"%${FLS}sk\" \"${FILELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${FILEPER}%\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+		esac
+		((COUNT++))
+	done
+done
+
+
+# Parse and print ZFS quotas outpus
+for (( I=0;I<${#ZFSSCRATCHARRAY[@]};I++ )); do
+	if [ ! -d "/scratch/${ZFSSCRATCHARRAY[I]}" ]; then
+		continue
+	fi
+
+	# Skip scratches user doesn't have access to
+	if [[ $(indInArray "${ZFSSCRATCHARRAY[I]}" "${USERHOSTSARRAY[@]}") -eq -1 ]]; then
+		continue
+	fi
+
+	# Get remote ZFS quota output and save exit status
+	ZFS=`ssh -x -o "StrictHostKeyChecking=no" -o "ConnectTimeout=10" warden.${ZFSSCRATCHARRAY[I]} "/bin/sh -c \"/sbin/zfs get -p userused@$USERNAME 2> /dev/null | grep 'scratch' | grep '${ZFSSCRATCHARRAY[I]} ' 2> /dev/null; /sbin/zfs get -p userquota@$USERNAME 2> /dev/null | grep 'scratch' | grep '${ZFSSCRATCHARRAY[I]} ' 2> /dev/null\"" 2> /dev/null`
+	ZFS_STATUS=$?
+
+	# If ZFS quota inaccessible, continue to next quota
+	if [[ $ZFS_STATUS -ne 0 ]]; then
+		PRINTNAME=${ZFSSCRATCHARRAY[I]}
+		if [[ $SCRATCHCOUNT == -1 ]]; then
+			let SCRATCHCOUNT+=1
+			SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"scratch\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		else
+			let OTHERCOUNT+=1
+			OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s%${SS}s\" \"other\" \"${PRINTNAME}\" \"This file system's quotas are currently inaccessible.\"`"
+		fi
+		continue
+	fi
+
+	let COUNT=0
+	let FSTYPE=-1
+	for ITEM in ${ZFS}; do
+		case $COUNT in
+			0) # Check if local or remote scratch and display
+				PRINTNAME=${ZFSSCRATCHARRAY[I]}
+				TEST=${PRINTNAME//,/|}  # Commas to '|' in regexp
+				if [[ ${MYSCRATCH} =~ ${TEST} ]]; then
+					let SCRATCHCOUNT+=1
+					SCRATCHARR[$SCRATCHCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"scratch\" \"${PRINTNAME}\"`"
+					FSTYPE=1
+				else
+					let OTHERCOUNT+=1
+					OTHERARR[$OTHERCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"other\" \"${PRINTNAME}\"`"
+					FSTYPE=2
+				fi
+			;;
+			2) # Display blocks (size)
+				let ITEM=${ITEM}/1024
+				let SIZE=${ITEM}
+				bytesToH ${ITEM} 1 SIZEH
+				RESULT="`printf \"%${SS}s\" \"${SIZEH}\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			6) # Display Limit
+				let ITEM=${ITEM}/1024
+				let SIZELIMIT=${ITEM}
+				if [ "$SIZELIMIT" -ne "0" ]; then
+					SIZEPER=`echo "scale=10; 100*${SIZE}/${SIZELIMIT}" | bc`
+					if [ "`echo ${SIZEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+						SIZEPER=`printf "%0.2f" "${SIZEPER}"`
+					else
+						SIZEPER=`printf "%.0f" "${SIZEPER}"`
+					fi
+				else
+					# Limit is 0, skip this entry and undo the modifications already made
+					case $FSTYPE in
+						1) # Scratch
+							SIZEPER="0"
+						;;
+						2) # Other
+							OTHERARR[$OTHERCOUNT]=""
+							((OTHERCOUNT--))
+							break
+						;;
+					esac
+				fi
+				bytesToH ${ITEM} 1 SIZELIMITH
+				RESULT="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+				RESULT+="`printf \"%${US}s\" \"${SIZEPER}%\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+			7) # Display files
+			   # Display files limit
+				RESULT="`printf \"%${FS}s \" \"-\"`"
+				RESULT+="`printf \"%${FLS}s\" \"-\"`"
+				RESULT+="`printf \"%${US}s\" \"-\"`"
+				case $FSTYPE in
+					1) # Scratch
+						SCRATCHARR[$SCRATCHCOUNT]+="${RESULT}"
+					;;
+					2) # Other
+						OTHERARR[$OTHERCOUNT]+="${RESULT}"
+					;;
+				esac
+			;;
+		esac
+		((COUNT++))
+	done
+done
+
+
+# Generate Data Depot content
+for GROUP in `groups ${USERNAME} | cut -d ':' -f 2 | tr ' ' '\n' | sort -u`; do
+	if [ -d "${DEPOTS_DIRECTORY}/${GROUP}" ]; then
+		DEPOTARR[$DEPOTCOUNT]="`printf \"%-${TS}s%-${YS}s\" \"depot\" \"${GROUP}\"`"
+		# For Depot, df reports double the sizes (due to replication),
+		# so double the blocksize to get proper byte counts.
+		DF_OUT=`df -T -B 2048 -P "${DEPOTS_DIRECTORY}/${GROUP}" | sed 's/ \+/ /g' | grep -v "^Filesystem"`
+		if [ $? -eq 0 ]; then
+			TOTAL_BYTES=`echo "${DF_OUT}" | cut -d ' ' -f 3 | grep "^[0-9]\+$"`
+			if [ $? -ne 0 -o "x${TOTAL_BYTES}" == "x" ]; then
+				SIZELIMITH="?  "
+			else
+				bytesToH ${TOTAL_BYTES} 1 SIZELIMITH
+			fi
+
+			USED_BYTES=`echo "${DF_OUT}" | cut -d ' ' -f 4 | grep "^[0-9]\+$"`
+			if [ $? -ne 0 -o "x${USED_BYTES}" == "x" ]; then
+				SIZEH="?  "
+			else
+				bytesToH ${USED_BYTES} 1 SIZEH
+			fi
+
+			SIZEPER=`echo "${DF_OUT}" | cut -d ' ' -f 6 | grep "^[0-9]\+%$"`
+			if [ $? -ne 0 -o "x${SIZEPER}" == "x" ]; then
+				SIZEPER="? "
+			fi
+		fi
+
+		RESULT="`printf \"%${SS}s\" \"${SIZEH}\"`"
+		RESULT+="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+		RESULT+="`printf \"%${US}s\" \"${SIZEPER}\"`"
+		DEPOTARR[$DEPOTCOUNT]+=${RESULT}
+
+		# No file quotas
+		DEPOTARR[$DEPOTCOUNT]+="`printf \"%${FS}s \" \"-\"`"
+		DEPOTARR[$DEPOTCOUNT]+="`printf \"%${FLS}s \" \"-\"`"
+		DEPOTARR[$DEPOTCOUNT]+="`printf \"%${US}s\" \"- \"`"
+
+		let DEPOTCOUNT+=1
+	fi
+done
+
+
+# Generate anchored project space content
+# Same thinking about keeping a [very simplified] 'mmquota' helper script
+# rather than coding extra "native vs. NFS" logic into myquota directly.
+# See top comment at GPFS scratch handling for more info.
+for SHARED_DIRECTORY in "${ANCHORED_GPFS_SHAREDARRAY[@]}"; do
+	for GROUP in `id -Gn ${USERNAME} | xargs -n 1 | sort -u`; do
+		if [ -d "${ANCHOR}/${SHARED_DIRECTORY}/${GROUP}" ]; then
+
+			# Assemble arguments for the mmquota call.
+			# The filesystem (device) is deduced by stripping
+			# topdir from {anchorfs}[:/]{topdir}.  And the fileset
+			# name matches group name.
+			MMFS="${ANCHORED_GPFS_SHAREDFSARRAY%%[:/]*}"
+			FILESET="$GROUP"
+
+
+			# Get GPFS output and save exit status
+			# Note: using '-Y' (colon-separated machine-parseable output format)
+			# because default human-readable output may or may not have a 'Fileset'
+			# column, which would shift column numbers and confuse parsing code.
+			MMLS=`mmquota -Y -j $FILESET -f $MMFS | tail -n +2 2> /dev/null`
+			MMLS_STATUS=$?
+
+			# If MMLS inaccessible, continue to next space
+			if [[ $MMLS_STATUS -ne 0 ]]; then
+				let SHAREDCOUNT+=1
+				SHAREDARR[$SHAREDCOUNT]+=$(printf "%-${TS}s%-${YS}s%${SS}s" "${SHARED_DIRECTORY}" "${GROUP}" "This file system's quotas are currently inaccessible.")
+				continue
+			fi
+
+			# Ok, parse the output
+			let COUNT=0
+			for ITEM in $(echo "$MMLS" | tr ':' '\n'); do
+				case $COUNT in
+					0) # Check if local or remote scratch and display
+						let SHAREDCOUNT+=1
+						SHAREDARR[$SHAREDCOUNT]+="`printf \"%-${TS}s%-${YS}s\" \"${SHARED_DIRECTORY}\" \"${GROUP}\"`"
+					;;
+					8) # Display blocks (size)
+						let SIZE=${ITEM}
+						bytesToH ${ITEM} 1 SIZEH
+						RESULT="`printf \"%${SS}s\" \"${SIZEH}\"`"
+						SHAREDARR[$SHAREDCOUNT]+="${RESULT}"
+					;;
+					10) # Display Limit
+						let SIZELIMIT=${ITEM}
+						if [ "$SIZELIMIT" -ne "0" ]; then
+							SIZEPER=`echo "scale=10; 100*${SIZE}/${SIZELIMIT}" | bc`
+							if [ "`echo ${SIZEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+								SIZEPER=`printf "%0.2f" "${SIZEPER}"`
+							else
+								SIZEPER=`printf "%.0f" "${SIZEPER}"`
+							fi
+						else
+							# Limit is 0, lucky you!
+							SIZEPER="0"
+						fi
+						bytesToH ${ITEM} 1 SIZELIMITH
+						RESULT="`printf \"%${SLS}s\" \"${SIZELIMITH}\"`"
+						RESULT+="`printf \"%${US}s\" \"${SIZEPER}%\"`"
+						SHAREDARR[$SHAREDCOUNT]+="${RESULT}"
+					;;
+					13) # Display files
+						ITEM=${ITEM%\*}
+						let FILES=${ITEM}
+						ITEM=`echo "scale=0; $ITEM/1000" | bc`
+						addCommas ${ITEM} FILEH
+						RESULT="`printf \"%${FS}sk\" \"${FILEH}\"`"
+						SHAREDARR[$SHAREDCOUNT]+="${RESULT}"
+					;;
+					15) # Display files limit
+						let FILESLIMIT=${ITEM}
+						if [ "$FILESLIMIT" -ne "0" ]; then
+							FILEPER=`echo "scale=10; 100*${FILES}/${FILESLIMIT}" | bc`
+							if [ "`echo ${FILEPER} | grep \"^\.\" | wc -l`" == "1" ]; then
+								FILEPER=`printf "%0.2f" "${FILEPER}"`
+							else
+								FILEPER=`printf "%.0f" "${FILEPER}"`
+							fi
+						else
+							let FILEPER=0
+						fi
+						ITEM=`echo "scale=0; $ITEM/1000" | bc`
+						addCommas ${ITEM} FILELIMITH
+						RESULT="`printf \"%${FLS}sk\" \"${FILELIMITH}\"`"
+						RESULT+="`printf \"%${US}s\" \"${FILEPER}%\"`"
+						SHAREDARR[$SHAREDCOUNT]+="${RESULT}"
+					;;
+				esac
+				((COUNT++))
+			done
+ 		fi
+ 	done
+done
+
+
+# Print quotas
+for (( I=0;I<=${HOMECOUNT};I++ )); do
+	echo "${HOMEARR[$I]}"
+done
+for (( I=0;I<=${SCRATCHCOUNT};I++ )); do
+	echo "${SCRATCHARR[$I]}"
+done
+for (( I=0;I<=${OTHERCOUNT};I++ )); do
+	echo "${OTHERARR[$I]}"
+done
+for (( I=0;I<${DEPOTCOUNT};I++ )); do
+	echo "${DEPOTARR[$I]}"
+done
+for (( I=0;I<=${SHAREDCOUNT};I++ )); do
+	echo "${SHAREDARR[$I]}"
+done
+printf "\n"

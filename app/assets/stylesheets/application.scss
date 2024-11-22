@@ -1,0 +1,153 @@
+// Load bootstrap/font-awesome sprockets first
+
+@import "variables";
+
+@import "bootstrap/scss/bootstrap";
+
+@import "custom";
+
+@import "font-awesome-sprockets";
+
+// Import Markdown styling
+@import "app_kit/markdown";
+
+//@import "awesim";
+
+//TODO:
+// overrides for navbar-default to get the same look and feel
+// this way we could have 2 different navbars on the same app
+// one that is styled darker and tiny (navbar-inverse) and one
+// that is red:
+// $navbar-default-bg:  rgb(200,16,46);
+// $navbar-default-color: rgb(255, 255, 255);
+// $navbar-default-link-color: rgb(255, 255, 255);
+// $navbar-default-link-hover-color: rgb(255, 255, 255);
+// $navbar-default-brand-hover-color: rgb(255, 255, 255);
+// $navbar-default-link-active-color: rgb(255, 255, 255);
+
+//TODO: consider this to be the default height to use on other pages
+// then make the navbar larger on the main pages where the larger navbar doesn't
+// get in the way
+// $navbar-height: 20px;
+
+// styles to make a logo fill the navbar height if using a logo for the navbar title
+.navbar-brand.navbar-brand-logo {
+  padding: 0px;
+}
+
+a.navbar-brand.navbar-brand-logo {
+  height: 2em;
+}
+
+.navbar-brand.navbar-brand-logo img {
+  height: 100%;
+}
+
+// for inverse, lets make the text slightliy darker so its
+// different than the links
+.navbar.navbar-inverse .navbar-text {
+  color: #ddd;
+}
+
+// Add colors
+$ood-white: rgb(255, 255, 255);
+$ood-red: rgb(200, 16, 46);
+$ood-burgundy: rgb(120, 47, 64);
+$ood-light-gray: rgb(151, 153, 155);
+$ood-gray: rgb(83, 86, 90);
+$ood-black: rgb(45, 51, 38);
+$ood-blue: rgb(0, 95, 133);
+
+
+// Load up bootstrap/font-awesome style sheet
+@import "font-awesome";
+
+// Load up dataTables bootstrap specific styles
+// @import "datatables.net-bs4/css/dataTables.bootstrap4";
+
+// Use sticky footer in body of layout
+// See: https://css-tricks.com/couple-takes-sticky-footer/
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+
+  div.content {
+    flex: 1 0 auto;
+  }
+
+  .footer {
+    flex-shrink: 0;
+  }
+}
+
+// Borrowed from bootstrap 4
+.ood-mb-2 {
+  margin-bottom: (1rem * .50) !important;
+}
+
+// Remove the well-styling from the bootstrap <pre>
+pre.motd-monospaced {
+  background-color: #FFFFFF;
+  font-size: 14px;
+  border: none;
+  white-space: pre-wrap;
+}
+
+// Add branded panels
+
+.sandbox-apps-header {
+  background-color: $ood-burgundy;
+  color: $ood-white;
+  margin-bottom: 2rem;
+}
+
+.system-and-shared-apps-header {
+  background-color: $ood-blue;
+  color: $ood-white;
+  margin-bottom: 2rem;
+}
+
+/**
+@media (min-width: $screen-sm-min) and (max-width: $screen-sm-max + 125) {
+  @include responsive-invisibility('.hidden-sm-nav');
+}
+
+@media (min-width: $screen-md-min) and (max-width: $screen-md-max + 135) {
+  @include responsive-invisibility('.hidden-md-nav');
+}
+**/
+
+pre {
+  @extend .bg-light;
+  @extend .p-2;
+  @extend .rounded;
+}
+
+// bootstrap_form creates <small class="form-text" for help text
+// which is too small at 80% so we change it to be close to default
+small.form-text {
+   font-size: 96%;
+}
+
+// Your custom css styles below (must be manually added)
+
+@import "dashboard";
+@import "navbar";
+@import "apps";
+@import "products";
+@import "batch_connect/sessions";
+@import "batch_connect/session_contexts";
+@import "insufficient_quota";
+@import "insufficient_balance";
+@import "fa_shims";
+@import "fontawesome-iconpicker";
+@import "breadcrumb";
+@import "buttons";
+@import "files";
+@import "uppy/dist/uppy.min";

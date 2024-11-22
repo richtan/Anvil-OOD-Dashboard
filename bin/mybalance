@@ -1,0 +1,490 @@
+#!/bin/bash
+# ----------------------------------------------------------------------
+# mybalance - List available XSEDE allocation accounts for a user,
+#             and show their SU balances.
+#
+# Usage: mybalance [-h|--help] [OPTIONS] [username]
+#
+# See https://slurm.schedmd.com/SLUG19/Banking.pdf for details.
+#
+# By Lev Gorenstein <lev@purdue.edu>, 2021
+#
+# Revision history:
+# 2021-10-18 	v0.1 	Initial revision (created by new_script ver. 3.2-LG22).
+# 2022-06-22 	v0.1.2 	Report negative SU balance as "n/a" to avoid confusion.
+# 2023-02-04 	v0.1.3 	Hack to adjust reporting for some allocations, typos.
+# ----------------------------------------------------------------------
+
+VERSION="0.1.3" 			# Increment me!
+PROGNAME=${BASH_SOURCE##*/}
+LOG_TAG="mybalance"
+
+# ----------------------------------------------------------------------
+# Configuration and initialization.
+# ----------------------------------------------------------------------
+# Unix groups for RCAC staff (check them rather than fall back to sudo :)
+POWER_GROUPS=( rcacadms rcacstaf rcaceng itap )
+
+# Some executables we will need.
+SCONTROL_BIN=/usr/bin/scontrol
+SACCTMGR_BIN=/usr/bin/sacctmgr
+
+# Safe $PATH and sane behavior in pipes
+# Also make sure '-a' is disabled even if user had it enabled in their shell
+# (avoid 'Argument list too long' error)
+export PATH=/bin:/usr/bin:/usr/local/bin
+set -o pipefail
+set +o allexport
+
+# ----------------------------------------------------------------------
+# Auxillary functions.
+# ----------------------------------------------------------------------
+# Exit codes:
+E_OK=0 					# Successful termination
+E_CMDLINE=1 				# Bad command line
+E_RUNTIME=2 				# Runtime error
+
+warn() {
+   # warn [-p] "message" ["message"...]
+   # Send message(s) to stderr (yes, I don't like '>&2' in the main code).
+   # With '-p' option, prefixes each message with "PROGNAME: " (and that's
+   # pretty much the main raison-d'etre for this function vs. plain "echo").
+   local msg prefix=""
+   if [[ "$1" = "-p" ]]; then
+      prefix="$PROGNAME: "; shift
+   fi
+
+   # And now say it.
+   for msg in "$@" ; do
+      echo -e "${prefix}${msg}" 1>&2
+   done
+}
+
+verbose() {
+   # verbose [-p] "message" ["message"...]
+   # Logs the message to stderr if verbosity is right (because
+   # I got tired of repeating this three-lined 'if' in the body).
+   if [[ $verbo -gt 0 ]]; then
+      warn "$@"
+   fi
+}
+
+clean_up() {
+   # Perform pre-exit housekeeping
+   return
+}
+
+error_exit() {
+   # error_exit ["message" [status]]
+   # Special case: an explicitly empty message ('') will not be printed.
+   if [[ ! ($# -gt 0 && -z "$1") ]]; then
+      warn -p "${1:-"Unknown Error"}"
+   fi
+   clean_up
+   exit ${2:-$E_RUNTIME}
+}
+
+graceful_exit() {
+   # graceful_exit [status]]
+   clean_up
+   exit ${1:-$E_OK}
+}
+
+signal_exit() {
+   # Handle trapped signals
+   case $1 in
+      INT)
+         error_exit "Program interrupted by user" ;;
+      TERM)
+         error_exit "Program terminated" ;;
+      *)
+         error_exit "Terminating on unknown signal" ;;
+   esac
+}
+
+
+assert_modern_getopt() {
+   # This script depends on getopt handling short and long options.
+   # Older implementation of getopt may be incompatible, so let's check.
+   unset GETOPT_COMPATIBLE && getopt --test >& /dev/null
+   if [[ $? -ne 4 ]]; then
+      error_exit "Incompatible 'getopt' utility, can't proceed" $E_RUNTIME
+   fi
+}
+
+assert_command_is_available() {
+   # Bail out if command is not present
+   local cmd="$1"
+   type "$cmd" >/dev/null 2>&1 || error_exit "Required command '$cmd' is not available, bailing out."
+}
+
+usage() {
+   local LEADIN="  $PROGNAME"
+   local spacer=$(printf "%${#LEADIN}s" '')
+   echo "Usage:"
+   # To break into several lines:
+   #   echo -e "$LEADIN ....line1...."
+   #   echo -e "$spacer ....line2...."
+   echo -e "$LEADIN [-h|--help] [OPTIONS] [username]"
+}
+
+
+help_message() {
+   # Yes, I don't like the '<<-' form, so indentation is somewhat off
+   cat << _EOF_
+$PROGNAME ver. $VERSION
+
+Display available XSEDE allocation accounts for a user, and their SU balances.
+
+$(usage)
+
+Options:
+  -V, --version	 Print program version and exit.
+  -h, --help	 Display this help message and exit.
+
+See https://slurm.schedmd.com/SLUG19/Banking.pdf for details.
+
+Exit status:
+   $E_OK  - normal termination
+   $E_CMDLINE  - error parsing command line
+   $E_RUNTIME  - runtime error
+_EOF_
+   echo ""
+   return
+}
+
+
+is_user_in_group() {
+   # Returns success or failure depending on whether user is in a Unix group.
+   local user="$1"
+   local group="$2"
+   local rc=$E_RUNTIME
+
+   if id -Gn "$user" 2>/dev/null | xargs -n 1 | fgrep -x "$group" >& /dev/null; then
+      rc=$E_OK
+   fi
+   return $rc
+}
+
+is_power_user() {
+   # Returns success or failure depending on whether user belongs to a
+   # set of RCAC groups.
+   local user="$1"
+   local group
+   local rc=$E_RUNTIME
+
+   for group in "${POWER_GROUPS[@]}"; do
+      if is_user_in_group "$user" "$group"; then
+         rc=$E_OK
+         break
+      fi
+   done
+   return $rc
+}
+
+get_field() {
+   ###  get_field "FieldName"
+   # Takes a line of "AAA=xxx BBB=yyy CCC=zzz" space-separated values on stdin
+   # (like the banking request
+   #   scontrol show assoc users=$user accounts=$account flags=assoc --oneliner
+   # returns), prints the value of a field named $1.  One value per line (so be
+   # careful if input contains multiple lines).
+
+   local field_name="$1"
+   tr ' ' '\n' | grep "^$field_name=" 2>/dev/null | cut -d= -f 2-
+}
+
+limit_usage_balance() {
+   ### limit_usage_balance "TRES"
+   # Takes a GrpTRESMins string on stdin, split into individual TRES components
+   # on commas, then print limit, usage and balance for the TRES which name
+   # is given as $1.
+   # A GrpTRESMins string will look like this:
+   # cpu=10000000(337253),mem=N(790400749),energy=N(0),node=N(3065),billing=N(337253),fs/disk=N(0),vmem=N(0),pages=N(0),gres/gpu=N(0)
+   # For each TRES, values are "name=limit(usage)" (in resource-minutes) - and
+   # we compute the balance.  Note: an "N" stands for no limit.
+
+   local tres="$1"
+   tr ',' '\n' | grep "^$tres=" 2>/dev/null | cut -d= -f 2- 		\
+   | awk -v tres="$tres" 						\
+         ' 								\
+           {
+              # Split the "LIMIT(USAGE)" value into components (minutes)
+              split( $0, buf, /[()]/ );
+              limit = buf[1];
+              usage = buf[2];
+
+              # Compute balance, convert to SUs (1 SU = 60 resource-minutes)
+              if (limit != "N") {
+                 balance   = limit - usage
+                 limitSU   = sprintf("%.1f", limit/60)
+                 usageSU   = sprintf("%.1f", usage/60)
+                 if (balance < 0) {
+                    balanceSU = "n/a"
+                 } else {
+                    balanceSU = sprintf("%.1f", balance/60)
+                 }
+              } else {
+                 limit     = "None"
+                 balance   = "Inf"
+                 limitSU   = limit
+                 usageSU   = sprintf("%.1f", usage/60)
+                 balanceSU = balance
+              }
+           }
+
+           END {
+              # And print the results (as strings, one value per line
+              printf("%s\n%s\n%s\n", limitSU, usageSU, balanceSU)
+	   }
+         '
+}
+
+allocation_type() {
+   ### allocation_type "acct"
+   # A function to determine whether a given allocation account ($1) is a CPU
+   # or a GPU one.  Prints a string "CPU", "GPU" or both (on separate lines).
+   local account="$1"
+
+   # Get QoS' for this account (note the blank username).
+   # Output is 'oneqos,anotherquos,....'.
+   verbose "# ... Getting allocation type (QoS information) for account $account"
+   verbose "# $SACCTMGR_BIN --noheader --parsable2 show assoc account=$account user= format=qos"
+   local assocs=$($SACCTMGR_BIN --noheader --parsable2 show assoc account=$account user= format=qos)
+
+   # Uppercase and add a comma at both ends for ease of more precise comparisons.
+   # Current convention is to have either 'cpu' or 'gpu', or 'normal' (meaning both).
+   case ",${assocs^^}," in
+      *,NORMAL,*)
+         echo "CPU"; echo "GPU" ;;
+      *,CPU,*)
+         echo "CPU" ;;
+      *,GPU,*)
+         echo "GPU" ;;
+   esac
+}
+
+
+
+# ----------------------------------------------------------------------
+# Log the invocation
+# ----------------------------------------------------------------------
+/bin/logger -t "$LOG_TAG" -- "user=$USER cmdline=$*"
+
+
+# ----------------------------------------------------------------------
+# Trap signals
+# ----------------------------------------------------------------------
+trap "signal_exit TERM" TERM HUP
+trap "signal_exit INT"  INT
+
+
+
+# ----------------------------------------------------------------------
+# Parse command-line
+# ----------------------------------------------------------------------
+status=$E_OK 				# Hopefully ;-)
+verbo=0 				# Default verbosity
+
+# Using new getopt from util-linux package
+SHORTOPTS="qvVh"
+LONGOPTS="quiet,verbose,version,help"
+assert_modern_getopt
+if ! TEMP=$(getopt -o "$SHORTOPTS" --long "$LONGOPTS" -- "$@"); then
+   usage; error_exit '' $E_CMDLINE
+fi
+eval set -- "$TEMP"
+while true; do
+   case "$1" in
+      -q | --quiet)
+         verbo=-1; shift ;;
+      -v | --verbose)
+         verbo=1; shift ;;
+      -V | --version)
+         echo "$PROGNAME ver. $VERSION"; graceful_exit ;;
+      -h | --help)
+         help_message; graceful_exit ;;
+      --) shift; break ;;
+       *) error_exit "Internal error." $E_RUNTIME ;;
+   esac
+done
+
+# ----------------------------------------------------------------------
+# Defaults and sanity checks
+# ----------------------------------------------------------------------
+# Are we given any fish to fry?
+# Handle optional user name parameter (there could be only one).
+me=$(whoami)
+if [[ "$1" == "" ]]; then
+   WHO="$me"
+else
+   # Only allow for cross user queries if running as root or RCAC staff
+   if [[ $EUID -eq 0 ]] || is_power_user "$me" || [[ "$1" == "$me" ]]; then
+      WHO="${1%%,*}" 	# Strip smardalec "aaa,bbb" (valid, but we don't want)
+   else
+      error_exit "Only RCAC Staff can look up other users' SU balances."
+   fi
+fi
+
+# Required prerequisite commands, if any.
+PREREQCMDS=( "$SACCTMGR_BIN" "$SCONTROL_BIN" )
+for cmd in "${PREREQCMDS[@]}"; do
+   assert_command_is_available "$cmd"
+done
+
+
+# ----------------------------------------------------------------------
+# Main logic
+# ----------------------------------------------------------------------
+
+# Get accounts (i.e. allocations) this user has access to.
+# sacctmgr output will look like
+# 	anvil|rcac|lev|<optionally partiton name>
+# and we get the second field.
+declare -a SACCTMGR_OPTS
+SACCTMGR_OPTS+=( --noheader --parsable2 )
+SACCTMGR_OPTS+=( show associations wopl )
+if [[ -n $CLUSTER ]]; then
+   SACCTMGR_OPTS+=( cluster="$CLUSTER" )
+fi
+SACCTMGR_OPTS+=( user="$WHO" )
+
+verbose "# User $WHO's accounts:"
+verbose "# $SACCTMGR_BIN ${SACCTMGR_OPTS[*]} | cut -d '|' -f2 | sort -u"
+readarray -t ACCOUNTS < <("$SACCTMGR_BIN" "${SACCTMGR_OPTS[@]}" | cut -d '|' -f2 | sort -u)
+if [[ $? -ne 0 ]]; then
+   error_exit "Can not determine user '$WHO' allocations list"
+fi
+verbose "# ACCOUNTS=( ${ACCOUNTS[*]} )"
+
+
+# Print header
+FMT="%-13s  %4s  %10s  %10s %10s  %10s\n"
+echo
+printf "$FMT" \
+       "Allocation"  "Type"  "SU Limit"   "SU Usage" "SU Usage"  "SU Balance"
+printf "$FMT" \
+       "Account"         ""          ""  "(account)"   "(user)"            ""
+printf "=============  ====  ==========  ========== ==========  ==========\n"
+
+# And now for each detected account, analyze banking information from scontrol
+# (see https://slurm.schedmd.com/SLUG19/Banking.pdf)
+for ACCT in "${ACCOUNTS[@]}"; do
+   verbose "# ... Getting banking information for account $ACCT"
+
+   # Get scontrol data
+   declare -a SCONTROL_OPTS=()
+   SCONTROL_OPTS+=( show assoc users="$WHO" accounts="$ACCT" flags=assoc )
+   SCONTROL_OPTS+=( --oneliner )
+   verbose "# $SCONTROL_BIN ${SCONTROL_OPTS[*]} | grep ^ClusterName="
+   readarray -t BANKING < <($SCONTROL_BIN ${SCONTROL_OPTS[@]} | grep ^ClusterName=)
+
+   # Now get GrpTresMins fields: one for the entire account, one for this user.
+   declare -A GrpTRESMins=()
+   GrpTRESMins[acct]=$(printf "%s\n" "${BANKING[@]}" \
+                             | fgrep "UserName= "    | get_field "GrpTRESMins")
+   GrpTRESMins[user]=$(printf "%s\n" "${BANKING[@]}" \
+                             | fgrep "UserName=$WHO" | get_field "GrpTRESMins")
+
+   # A GrpTRESMins will look like this:
+   # cpu=N(337253),mem=N(790400749),energy=N(0),node=N(3065),billing=N(337253),fs/disk=N(0),vmem=N(0),pages=N(0),gres/gpu=N(0)
+   # And we want to split it into individual resources... and then into limit
+   # and usage pairs.  As in 'cpu=N(123)', first element is limit, then usage.
+   # "N" stands for no limit.
+   limit=0
+   usage=1
+   balance=2
+   declare -A LIMIT USAGE BALANCE
+   readarray -t < <(echo "${GrpTRESMins[user]}" | limit_usage_balance "cpu")
+   LIMIT[cpu_user]="${MAPFILE[$limit]}"
+   USAGE[cpu_user]="${MAPFILE[$usage]}"
+   BALANCE[cpu_user]="${MAPFILE[$balance]}"
+
+   # And the entire account
+   readarray -t < <(echo "${GrpTRESMins[acct]}" | limit_usage_balance "cpu")
+   LIMIT[cpu_acct]="${MAPFILE[$limit]}"
+   USAGE[cpu_acct]="${MAPFILE[$usage]}"
+   BALANCE[cpu_acct]="${MAPFILE[$balance]}"
+
+   # And same for GPU (user)
+   readarray -t < <(echo "${GrpTRESMins[user]}" | limit_usage_balance "gres/gpu")
+   LIMIT[gpu_user]="${MAPFILE[$limit]}"
+   USAGE[gpu_user]="${MAPFILE[$usage]}"
+   BALANCE[gpu_user]="${MAPFILE[$balance]}"
+
+   # And same for GPU (account)
+   readarray -t < <(echo "${GrpTRESMins[acct]}" | limit_usage_balance "gres/gpu")
+   LIMIT[gpu_acct]="${MAPFILE[$limit]}"
+   USAGE[gpu_acct]="${MAPFILE[$usage]}"
+   BALANCE[gpu_acct]="${MAPFILE[$balance]}"
+
+   # Pick proper numbers for CPU and GPU allocations, respectively.
+   # Some accounts may be both CPU and GPU (e.g. 'rcac')... report them twice.
+   # "Print" output into array of strings, then real print at the end.
+   declare -a TOPRINT=()
+   readarray -t ALLOCTYPES < <(allocation_type "$ACCT")
+   for TYPE in "${ALLOCTYPES[@]}"; do
+      if [[ "$TYPE" == "CPU" ]]; then
+         LIMIT[acct]="${LIMIT[cpu_acct]}"
+         USAGE[acct]="${USAGE[cpu_acct]}"
+         USAGE[user]="${USAGE[cpu_user]}"
+         BALANCE[acct]="${BALANCE[cpu_acct]}"
+      elif [[ "$TYPE" == "GPU" ]]; then
+         LIMIT[acct]="${LIMIT[gpu_acct]}"
+         USAGE[acct]="${USAGE[gpu_acct]}"
+         USAGE[user]="${USAGE[gpu_user]}"
+         BALANCE[acct]="${BALANCE[gpu_acct]}"
+      else
+         # We should never get here
+         TYPE="unk"
+         LIMIT[acct]="???"
+         USAGE[acct]="???"
+         USAGE[user]="???"
+         BALANCE[acct]="???"
+         status=$E_RUNTIME
+      fi
+
+      # Adjust usage and limits by manual TRES reset offsets
+      # A special hack for very special circumstances.
+      if [[ "$ACCT" == "cts070070" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+1016.4" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+1016.4" | bc)
+      elif [[ "$ACCT" == "cts110029" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+2770.5" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+2770.5" | bc)
+      elif [[ "$ACCT" == "geo170003" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+4508.6" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+4508.6" | bc)
+      elif [[ "$ACCT" == "mat210034-gpu" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+2.5" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+2.5" | bc)
+      elif [[ "$ACCT" == "mcb130189" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+149622.2" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+149622.2" | bc)
+      elif [[ "$ACCT" == "mcb200143" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+25" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+25" | bc)
+      elif [[ "$ACCT" == "phy130027" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+649345.9" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+649345.9" | bc)
+      elif [[ "$ACCT" == "phy220038" ]]; then
+         LIMIT[acct]=$(echo "${LIMIT[acct]}+378235.2" | bc)
+         USAGE[acct]=$(echo "${USAGE[acct]}+378235.2" | bc)
+      fi
+
+      # And prepare output string
+      TOPRINT+=( "$(printf "$FMT" "$ACCT" "$TYPE" "${LIMIT[acct]}"     \
+                "${USAGE[acct]}" "${USAGE[user]}" "${BALANCE[acct]}")" )
+   done
+
+   # And print for realz
+   printf "%s\n" "${TOPRINT[@]}"
+done
+echo
+
+
+# ----------------------------------------------------------------------
+# All done - exit.
+# ----------------------------------------------------------------------
+graceful_exit $status
+

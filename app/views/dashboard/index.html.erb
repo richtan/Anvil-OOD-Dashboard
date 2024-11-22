@@ -1,0 +1,99 @@
+<div class="row mb-2">
+  <!-- Big screens -->
+  <div class="col-12 d-none d-md-flex">
+    <img src="https://media.licdn.com/dms/image/D563DAQEszTaRYg-4Vw/image-scale_191_1128/0/1712867399651/purdue_rosen_center_for_advanced_computing_rcac_cover?e=2147483647&v=beta&t=_BAUI2DjoHsbtkSStqNlVbqbOT4j7plK3_YXkiiXn5I" class="w-100" style="border-radius: 15px; aspect-ratio: 32 / 2; object-fit: cover; box-shadow: 0 0.5rem 0.75rem rgba(0, 0, 0, 0.15);" />
+    <svg viewBox="0 0 100 100" class="position-absolute" style="top: 0; left: 0; width: 100%; height: 100%;">
+      <text x="-650" y="80.5" fill="white" stroke="black" stroke-width="0.005" style="font-size: 470%;" class="no-select">Anvil</text>
+    </svg>
+    <svg viewBox="0 0 100 100" class="position-absolute" style="top: 0; left: 0; width: 100%; height: 100%;">
+      <text x="-180" y="68" fill="white" stroke="black" stroke-width="0.015" style="font-size: 300%;" class="no-select">Rosen Center for Advanced Computing</text>
+    </svg>
+  </div>
+
+  <!-- Small screens -->
+  <div class="col-12 d-flex d-md-none">
+    <img src="https://media.licdn.com/dms/image/D563DAQEszTaRYg-4Vw/image-scale_191_1128/0/1712867399651/purdue_rosen_center_for_advanced_computing_rcac_cover?e=2147483647&v=beta&t=_BAUI2DjoHsbtkSStqNlVbqbOT4j7plK3_YXkiiXn5I" class="w-100" style="border-radius: 15px; aspect-ratio: 32 / 8; object-fit: cover; box-shadow: 0 0.5rem 0.75rem rgba(0, 0, 0, 0.15);" />
+    <svg viewBox="0 0 100 100" class="position-absolute" style="top: 0; left: 0; width: 100%; height: 100%;">
+      <text x="-120" y="58.5" fill="white" stroke="black" stroke-width="0.005" style="font-size: 370%;" class="no-select">Anvil</text>
+    </svg>
+    <svg viewBox="0 0 100 100" class="position-absolute" style="top: 0; left: 0; width: 100%; height: 100%;">
+      <text x="-80" y="83" fill="white" stroke="black" stroke-width="0.015" style="font-size: 100%;" class="no-select">Rosen Center for Advanced Computing</text>
+    </svg>
+  </div>
+</div>
+
+<noscript>
+  <div class="alert alert-warning" role="alert">
+    JavaScript must be enabled to view widgets.
+  </div>
+</noscript>
+
+<div class="row d-none homepage-widgets">
+  <div class="col-lg-7 col-md-6 col-12 order-2 order-md-1">
+    <div class="row mt-2">
+      <div class="col-12 col-lg-6 pl-md-3 pr-md-0 pr-lg-1">
+        <div class="card px-2 px-md-0 my-2 h-100 border-0" style="overflow-x: auto;">
+          <%= render partial: "widgets/balance_usage" %>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6 pl-md-3 pr-md-0 pr-lg-1">
+        <div class="card px-2 px-md-0 my-2 h-100 border-0" style="overflow-x: auto;">
+          <%= render partial: "widgets/disk_usage" %>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <div class="card px-2 my-2 border-0" style="overflow-x: auto;">
+          <%= render partial: "widgets/job_queue" %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5 col-md-6 col-12 order-1 order-lg-2">
+    <div class="row my-1">
+      <div class="col">
+          <div class="card px-2 my-2 border-0">
+            <%= render partial: "widgets/news_feed" %>
+          </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <div class="card px-2 my-2 border-0" style="overflow-x: auto;">
+          <%= render partial: "widgets/partition_status" %>
+        </div>
+      </div>
+    </div>
+    <div class="row d-none">
+      <div class="col">
+        <div class="card px-2 my-2 border-0" style="overflow-x: auto;">
+          <%= render partial: "widgets/pinned_apps" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row d-none homepage-widgets">
+  <div class="col">
+    <div style="text-align: center;">
+      <a role="button" class="btn btn-sm btn-info btn-block shadow-sm mx-auto font-weight-bold p-2" style="font-size: 24px;" href="https://www.rcac.purdue.edu/help">
+        <i class="far fa-question-circle"></i> Need help with Anvil?
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(async () => {
+    $(".homepage-widgets").removeClass("d-none");
+
+    load_balance_usage();
+    load_news_feed();
+    load_partition_status();
+    load_job_queue();
+    load_disk_usage();
+  });
+</script>

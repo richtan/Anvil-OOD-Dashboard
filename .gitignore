@@ -1,0 +1,12 @@
+node_modules
+.browserslistrc
+*.log
+/tmp/cache
+/tmp/restart.txt
+.env.local
+.env
+.ruby-version
+/public/assets
+/public/packs
+testfile.json
+/data

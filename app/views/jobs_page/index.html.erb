@@ -1,0 +1,1216 @@
+<div>
+    <h2 style="text-align: center;">Performance Metrics</h2>
+    <h5 style="text-align: center; font-weight: normal; padding-bottom: 7px;">Use this page to view your personal metrics on Anvil.</h5>
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button style="font-size: 18px;" class="nav-link active" id="all_time" data-toggle="tab" data-target="#alltime" type="button" role="tab" aria-selected="true">All Time</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button style="font-size: 18px;" class="nav-link" id="one_year" data-toggle="tab" data-target="#oneyear" type="button" role="tab" aria-selected="false">Past Year</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button style="font-size: 18px;" class="nav-link" id="one_month" data-toggle="tab" data-target="#onemonth" type="button" role="tab" aria-selected="false">Past Month</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button style="font-size: 18px;" class="nav-link" id="one_week" data-toggle="tab" data-target="#oneweek" type="button" role="tab" aria-selected="false">Past Week</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button style="font-size: 18px;" class="nav-link" id="one_day" data-toggle="tab" data-target="#oneday" type="button" role="tab" aria-selected="false">Past 24 Hours</button>
+        </li>
+    </ul>
+</div>
+<div class="col-12">   
+    <div id="loading">
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <em>Loading data, please wait...</em>
+    </div>
+</div>
+<div class="tab-content" id="myTabContent">
+    <div class="tab-pane fade show active" id="alltime" role="tabpanel" aria-labelledby="all_time">
+        <div class="row my-3">
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Jobs</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="totaluserjobs">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #90B1DB;" class="icon-circle">
+                                        <i style="color: #002D82;" class="bi bi-briefcase"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Average Wait Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="userwaittime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #9CAF88;" class="icon-circle">
+                                        <i style="color: #276221;" class="bi bi-hourglass-split"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Mean Job Duration</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="avgjobduration">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #ffa1a1;" class="icon-circle">
+                                        <i style="color: #d40000;" class="bi bi-stopwatch"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Wall Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="walltime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #C8B4E1;" class="icon-circle">
+                                        <i style="color: #795695;" class="bi bi-clock-history"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row my-3">
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Memory Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="avgmemeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="membelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="leastmem" style="margin-left: 3%; font-size: 17px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="mostmem" style="margin-right: 3%; font-size: 17px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Time Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="avgtimeeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="timebelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="leasttime" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="mosttime" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average CPU Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="avgcpueff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="cpubelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="leastcpu" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="mostcpu" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div> 
+        </div>
+    </div>
+    <div class="tab-pane fade" id="oneyear" role="tabpanel" aria-labelledby="one_year">
+        <div class="row my-3">
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Jobs</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneyearuserjobs">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #90B1DB;" class="icon-circle">
+                                        <i style="color: #002D82;" class="bi bi-briefcase"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Average Wait Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneyearuserwaittime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #9CAF88;" class="icon-circle">
+                                        <i style="color: #276221;" class="bi bi-hourglass-split"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Mean Job Duration</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneyearavgjobduration">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #ffa1a1;" class="icon-circle">
+                                        <i style="color: #d40000;" class="bi bi-stopwatch"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Wall Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneyearwalltime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #C8B4E1;" class="icon-circle">
+                                        <i style="color: #795695;" class="bi bi-clock-history"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row my-3">
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Memory Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="oneyearavgmemeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="oneyearmembelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="oneyearleastmem" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="oneyearmostmem" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Time Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="oneyearavgtimeeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="oneyeartimebelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="oneyearleasttime" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="oneyearmosttime" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average CPU Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="oneyearavgcpueff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="oneyearcpubelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="oneyearleastcpu" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="oneyearmostcpu" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="onemonth" role="tabpanel" aria-labelledby="one_month">
+        <div class="row my-3">
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Jobs</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onemonthuserjobs">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #90B1DB;" class="icon-circle">
+                                        <i style="color: #002D82;" class="bi bi-briefcase"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Average Wait Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onemonthuserwaittime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #9CAF88;" class="icon-circle">
+                                        <i style="color: #276221;" class="bi bi-hourglass-split"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Mean Job Duration</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onemonthavgjobduration">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #ffa1a1;" class="icon-circle">
+                                        <i style="color: #d40000;" class="bi bi-stopwatch"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Wall Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onemonthwalltime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #C8B4E1;" class="icon-circle">
+                                        <i style="color: #795695;" class="bi bi-clock-history"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> 
+        <div class="row my-3">
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Memory Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="onemonthavgmemeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="onemonthmembelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="onemonthleastmem" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="onemonthmostmem" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Time Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="onemonthavgtimeeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="onemonthtimebelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="onemonthleasttime" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="onemonthmosttime" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average CPU Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="onemonthavgcpueff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="onemonthcpubelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="onemonthleastcpu" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="onemonthmostcpu" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div> 
+        </div>
+    </div>
+    <div class="tab-pane fade" id="oneweek" role="tabpanel" aria-labelledby="one_week">
+        <div class="row my-3">
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Jobs</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneweekuserjobs">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #90B1DB;" class="icon-circle">
+                                        <i style="color: #002D82;" class="bi bi-briefcase"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Average Wait Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneweekuserwaittime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #9CAF88;" class="icon-circle">
+                                        <i style="color: #276221;" class="bi bi-hourglass-split"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Mean Job Duration</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneweekavgjobduration">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #ffa1a1;" class="icon-circle">
+                                        <i style="color: #d40000;" class="bi bi-stopwatch"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Wall Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="oneweekwalltime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #C8B4E1;" class="icon-circle">
+                                        <i style="color: #795695;" class="bi bi-clock-history"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> 
+        <div class="row my-3">
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Memory Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="oneweekavgmemeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="oneweekmembelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="oneweekleastmem" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="oneweekmostmem" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Time Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="oneweekavgtimeeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="oneweektimebelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="oneweekleasttime" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="oneweekmosttime" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average CPU Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="oneweekavgcpueff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="oneweekcpubelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="oneweekleastcpu" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="oneweekmostcpu" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div> 
+        </div>
+    </div>
+    <div class="tab-pane fade" id="oneday" role="tabpanel" aria-labelledby="one_day">
+        <div class="row my-3">
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Jobs</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onedayuserjobs">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #90B1DB;" class="icon-circle">
+                                        <i style="color: #002D82;" class="bi bi-briefcase"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Average Wait Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onedayuserwaittime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #9CAF88;" class="icon-circle">
+                                        <i style="color: #276221;" class="bi bi-hourglass-split"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Mean Job Duration</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onedayavgjobduration">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #ffa1a1;" class="icon-circle">
+                                        <i style="color: #d40000;" class="bi bi-stopwatch"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-12">
+                <div style="height: 150px;" class="test-box">
+                    <div class="row">
+                        <div class="col-md-8 col-12">
+                            <div class="row my-2">
+                                <div class="col-12">
+                                    <h5 style="font-size: 20px; font-weight: 485; color: #444444; margin-left: 16%; margin-top: 9%;">Total Wall Time</h5>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4 style="font-size: 23px; margin-left: 16%; font-weight: 500;" id="onedaywalltime">---</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="row my-2">
+                                <div class="col-12">    
+                                    <div style="margin-left: 10%; margin-top: 2vw; background-color: #C8B4E1;" class="icon-circle">
+                                        <i style="color: #795695;" class="bi bi-clock-history"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> 
+        <div class="row my-3">
+            <div class="col-md-4 col-12"> 
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Memory Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="onedayavgmemeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="onedaymembelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="onedayleastmem" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="onedaymostmem" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+            <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average Time Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="onedayavgtimeeff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="onedaytimebelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="onedayleasttime" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="onedaymosttime" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div>
+             <div class="col-md-4 col-12">
+                <div style="height: 300px;" class="test-box">
+                    <h3 style="font-size: 25px; font-weight: 485; color: #444444; text-align: center; margin-top: 5%;">Average CPU Efficiency</h3>
+                    <hr style="height: 2px;" class="separator">
+                    <h2 style="text-align: center; font-size: 30px; font-weight: 500;" id="onedayavgcpueff">---</h2>
+                    <div style="text-align: center;">
+                        <i class="bi bi-info-circle"></i>
+                        <h5 id="onedaycpubelow" style="text-align: center; font-size: 18px; font-weight: 485; display:inline;">---</h5>
+                    </div>
+                    <hr style="height: 2px;" class="separator">
+                    <h4 style="margin-left: 3%; font-size: 20px; font-weight: 480; float: left;">Least Efficient Job:</h4>
+                    <h4 style="margin-right: 3%; font-size: 20px; font-weight: 480; float: right;">Most Efficient Job:</h4>
+                    <h5 id="onedayleastcpu" style="margin-left: 3%; font-size: 18px; font-weight: 510; clear: both; float: left;">---</h5>
+                    <h5 id="onedaymostcpu" style="margin-right: 3%; font-size: 18px; font-weight: 510; float: right;">---</h5>
+                </div>
+            </div> 
+        </div>
+    </div>
+</div>
+
+<script>  
+    // method to fetch specific user data from reportseff
+    async function fetchUserData() {
+        try {
+            const response = await fetch("<%= url_for controller: "api/jobs_data", action: :getuserdata %>");
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const jsonData = await response.json();
+            return jsonData;
+        } catch (error) {
+            console.error('Error fetching JSON:', error);
+            return null;
+        }
+    }
+
+    // method to fetch specific user data from sacct
+    async function fetchUserSACCT() {
+        try {
+            const response = await fetch("<%= url_for controller: "api/jobs_data", action: :getsacctuser %>");
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const jsonData = await response.json();
+            return jsonData;
+        } catch (error) {
+            console.error('Error fetching JSON:', error);
+            return null;
+        }
+    }
+    
+    // returns the values of a key in a json file
+    function getValuesByKey(jsonData, key) {
+        return jsonData.map(item => item[key]);
+    }
+
+    // calculate wall time and average job duration
+    function calculateTimes(submit_full, start_full, end_full) {
+        let { start, submit, end, correlate_start } = start_full.reduce((acc, value, index) => {
+            if (value !== "Unknown" && value !== "None") {
+                acc.start.push(value);
+                acc.submit.push(submit_full[index]);
+                if (end_full[index] !== "Unknown" && end_full[index] !== "None") {
+                    acc.end.push(end_full[index]);
+                    acc.correlate_start.push(start_full[index]);
+                }
+            }
+            return acc;
+        }, { start: [], submit: [], end: [], correlate_start: [] });
+
+        let walltime = 0;
+        for(let i = 0; i < end.length; i++) {
+            let startTime = new Date(correlate_start[i]);
+            let endTime = new Date(end[i]);
+            let difference = (endTime - startTime) / (1000 * 60 * 60); // in hours
+            walltime += difference;
+        }
+        
+        let avgjobduration = 0;
+
+        if (end.length == 0) {
+            avgjobduration = 0;
+        } else {
+            avgjobduration = ((walltime * 60) / (end.length)); 
+        }
+
+        if (avgjobduration <= 1) {
+            avgjobduration = (avgjobduration * 60).toFixed(2) + " seconds";
+        } else if (avgjobduration <= 60) {
+            avgjobduration = avgjobduration.toFixed(2)+ " minutes";
+        } else {
+            avgjobduration = (avgjobduration / 60).toFixed(2) + " hours";
+        }
+
+        walltime = walltime * 60; // back to minutes
+
+        if (walltime <= 1) {
+            walltime = (walltime * 60).toFixed(2) + " seconds";
+        } else if (walltime <= 60) {
+            walltime = walltime.toFixed(2)+ " minutes";
+        } else {
+            walltime = (walltime / 60).toFixed(2) + " hours";
+        }
+
+        return [avgjobduration, walltime];
+    }
+
+    // calculate average of values
+    function getaverage(arr) {
+        let float = arr.map(str => {
+            let num = parseFloat(str);
+            return isNaN(num) ? null : num;
+        }).filter(num => num !== null);
+ 
+        if(float.length === 0) return 0;
+
+        const average = ((float.reduce((partialSum, a) => partialSum + a, 0)) / (float.length)).toFixed(2);
+
+        return average;
+    }
+
+    // displays how many jobs are below average efficiency
+    function belowaverage(arr) {
+        let float = arr.map(str => {
+            let num = parseFloat(str);
+            return isNaN(num) ? null : num;
+        }).filter(num => num !== null);
+
+        const average = getaverage(float);
+        const count = float.filter(number => number < average).length;
+        if (count === 1) {
+            return String(count).bold() + " out of " + String(float.length).bold() + " total jobs is below your average.";
+        }
+        return String(count).bold() + " out of " + String(float.length).bold() + " total jobs are below your average.";
+    }
+
+    // find job id with max efficiency
+    function findMax(jobids, arr) {
+        let combined = arr.map((str, index) => {
+            return { value: str, jobid: jobids[index] };
+        });
+
+        let filtered = combined.filter(item => {
+            let num = parseFloat(item.value);
+            return !isNaN(num);
+        });
+
+        if (filtered.length == 0) {
+            return "No jobs";
+        }
+
+        let floatValues = filtered.map(item => parseFloat(item.value));
+        let filteredJobIds = filtered.map(item => item.jobid);
+        let maxValue = Math.max(...floatValues);
+        let correspondingJobId = filteredJobIds[floatValues.indexOf(maxValue)];
+
+        return "Job ID: " + correspondingJobId + " (" + maxValue + "%)";
+    }
+
+    // find job id with min efficiency
+    function findMin(jobids, arr) {
+        let combined = arr.map((str, index) => {
+            return { value: str, jobid: jobids[index] };
+        });
+
+        let filtered = combined.filter(item => {
+            let num = parseFloat(item.value);
+            return !isNaN(num);
+        });
+
+        if (filtered.length == 0) {
+            return "No jobs";
+        }
+
+        let floatValues = filtered.map(item => parseFloat(item.value));
+        let filteredJobIds = filtered.map(item => item.jobid);
+        let minValue = Math.min(...floatValues);
+        let correspondingJobId = filteredJobIds[floatValues.indexOf(minValue)];
+
+
+        return "Job ID: " + correspondingJobId + " (" + minValue + "%)";
+    }
+
+    // get user average wait time
+    function getUserWaitTime(usersacct) {
+        let submit_full = getValuesByKey(usersacct, "Submit");
+        let start_full = getValuesByKey(usersacct, "Start");
+
+        let { start, submit } = start_full.reduce((acc, value, index) => {
+            if (value !== "Unknown" && value !== "None") {
+                acc.start.push(value);
+                acc.submit.push(submit_full[index]);
+            }
+            return acc;
+        }, { start: [], submit: [] });
+
+        let waittime = [];
+        const date = new Date();
+        for (let i = 0; i < submit.length; i++) {
+            let submitDate = new Date(submit[i]);
+            let startDate = new Date(start[i]);
+            let diffInMs = startDate - submitDate;
+            let diffInMins = diffInMs / (1000 * 60);
+            waittime.push(parseFloat(diffInMins));
+        }
+
+        if (waittime.length == 0) {
+            return "0 minutes";
+        }
+
+        if (getaverage(waittime) <= 1) {
+            return (getaverage(waittime) * 60).toFixed(2) + " seconds";
+        } else if (getaverage(waittime) <= 60) {
+            return getaverage(waittime)+ " minutes";
+        } else {
+            return (getaverage(waittime) / 60).toFixed(2) + " hours";
+        }
+    }
+
+    // generate info for different timeframes
+    function timeFrameInfo(userdata, usersacct) {
+        let jobIds = getValuesByKey(usersacct, "JobID");
+        let submitTimes = getValuesByKey(usersacct, "Submit");
+        let startTimes = getValuesByKey(usersacct, "Start");
+        let endTimes = getValuesByKey(usersacct, "End");
+
+        const currentDate = new Date();
+
+        const timeRanges = {
+            oneDayAgo: new Date(currentDate),
+            oneWeekAgo: new Date(currentDate),
+            oneMonthAgo: new Date(currentDate),
+            oneYearAgo: new Date(currentDate)
+        };
+
+        timeRanges.oneDayAgo.setDate(currentDate.getDate() - 1);
+        timeRanges.oneWeekAgo.setDate(currentDate.getDate() - 7);
+        timeRanges.oneMonthAgo.setMonth(currentDate.getMonth() - 1);
+        timeRanges.oneYearAgo.setFullYear(currentDate.getFullYear() - 1);
+
+        const filterJobs = (timeRange) => {
+            return submitTimes
+                .map((time, index) => ({
+                    submitTime: new Date(time),
+                    jobId: jobIds[index],
+                    submit: submitTimes[index],
+                    start: startTimes[index],
+                    end: endTimes[index]
+                }))
+                .filter(job => job.submitTime >= timeRange)
+                .map(job => {
+                    let jobDetail = userdata.find(report => report.jobid === job.jobId);
+                    if (jobDetail) {
+                        jobDetail.Submit = job.submit;
+                        jobDetail.Start = job.start;
+                        jobDetail.End = job.end;
+                    }
+                    return jobDetail;
+                })
+                .filter(job => job);
+        };
+
+        const jobsLastDay = filterJobs(timeRanges.oneDayAgo);
+        const jobsLastWeek = filterJobs(timeRanges.oneWeekAgo);
+        const jobsLastMonth = filterJobs(timeRanges.oneMonthAgo);
+        const jobsLastYear = filterJobs(timeRanges.oneYearAgo);
+
+        let alltime = calculateTimes(getValuesByKey(usersacct, "Submit"),getValuesByKey(usersacct, "Start"),getValuesByKey(usersacct , "End"));
+        let lastday = calculateTimes(getValuesByKey(jobsLastDay, "Submit"),getValuesByKey(jobsLastDay, "Start"),getValuesByKey(jobsLastDay , "End"));
+        let lastweek = calculateTimes(getValuesByKey(jobsLastWeek, "Submit"),getValuesByKey(jobsLastWeek, "Start"),getValuesByKey(jobsLastWeek , "End"));
+        let lastmonth = calculateTimes(getValuesByKey(jobsLastMonth, "Submit"),getValuesByKey(jobsLastMonth, "Start"),getValuesByKey(jobsLastMonth , "End"));
+        let lastyear = calculateTimes(getValuesByKey(jobsLastYear, "Submit"),getValuesByKey(jobsLastYear, "Start"),getValuesByKey(jobsLastYear , "End"));
+
+        document.getElementById('avgjobduration').innerHTML = alltime[0];
+        document.getElementById('walltime').innerHTML = alltime[1];
+        document.getElementById('onedayavgjobduration').innerHTML = lastday[0];
+        document.getElementById('onedaywalltime').innerHTML = lastday[1];
+        document.getElementById('oneweekavgjobduration').innerHTML = lastweek[0];
+        document.getElementById('oneweekwalltime').innerHTML = lastweek[1];
+        document.getElementById('onemonthavgjobduration').innerHTML = lastmonth[0];
+        document.getElementById('onemonthwalltime').innerHTML = lastmonth[1];
+        document.getElementById('oneyearavgjobduration').innerHTML = lastyear[0];
+        document.getElementById('oneyearwalltime').innerHTML = lastyear[1];
+
+        document.getElementById('onedaymosttime').innerHTML = findMax(getValuesByKey(jobsLastDay, "jobid"), getValuesByKey(jobsLastDay, "timeeff"));
+        document.getElementById('oneweekmosttime').innerHTML = findMax(getValuesByKey(jobsLastWeek, "jobid"), getValuesByKey(jobsLastWeek, "timeeff"));
+        document.getElementById('onemonthmosttime').innerHTML = findMax(getValuesByKey(jobsLastMonth, "jobid"), getValuesByKey(jobsLastMonth, "timeeff"));
+        document.getElementById('oneyearmosttime').innerHTML = findMax(getValuesByKey(jobsLastYear, "jobid"), getValuesByKey(jobsLastYear, "timeeff"));
+
+        document.getElementById('onedayleasttime').innerHTML = findMin(getValuesByKey(jobsLastDay, "jobid"), getValuesByKey(jobsLastDay, "timeeff"));
+        document.getElementById('oneweekleasttime').innerHTML = findMin(getValuesByKey(jobsLastWeek, "jobid"), getValuesByKey(jobsLastWeek, "timeeff"));
+        document.getElementById('onemonthleasttime').innerHTML = findMin(getValuesByKey(jobsLastMonth, "jobid"), getValuesByKey(jobsLastMonth, "timeeff"));
+        document.getElementById('oneyearleasttime').innerHTML = findMin(getValuesByKey(jobsLastYear, "jobid"), getValuesByKey(jobsLastYear, "timeeff"));
+
+        document.getElementById('onedaytimebelow').innerHTML = belowaverage(getValuesByKey(jobsLastDay, "timeeff"));
+        document.getElementById('oneweektimebelow').innerHTML = belowaverage(getValuesByKey(jobsLastWeek, "timeeff"));
+        document.getElementById('onemonthtimebelow').innerHTML = belowaverage(getValuesByKey(jobsLastMonth, "timeeff"));
+        document.getElementById('oneyeartimebelow').innerHTML = belowaverage(getValuesByKey(jobsLastYear, "timeeff"));
+
+        document.getElementById('onedayavgtimeeff').innerHTML = getaverage(getValuesByKey(jobsLastDay, "timeeff")) + "%";
+        document.getElementById('oneweekavgtimeeff').innerHTML = getaverage(getValuesByKey(jobsLastWeek, "timeeff")) + "%";
+        document.getElementById('onemonthavgtimeeff').innerHTML = getaverage(getValuesByKey(jobsLastMonth, "timeeff")) + "%";
+        document.getElementById('oneyearavgtimeeff').innerHTML = getaverage(getValuesByKey(jobsLastYear, "timeeff")) + "%";
+
+        document.getElementById('onedaymostcpu').innerHTML = findMax(getValuesByKey(jobsLastDay, "jobid"), getValuesByKey(jobsLastDay, "cpueff"));
+        document.getElementById('oneweekmostcpu').innerHTML = findMax(getValuesByKey(jobsLastWeek, "jobid"), getValuesByKey(jobsLastWeek, "cpueff"));
+        document.getElementById('onemonthmostcpu').innerHTML = findMax(getValuesByKey(jobsLastMonth, "jobid"), getValuesByKey(jobsLastMonth, "cpueff"));
+        document.getElementById('oneyearmostcpu').innerHTML = findMax(getValuesByKey(jobsLastYear, "jobid"), getValuesByKey(jobsLastYear, "cpueff"));
+
+        document.getElementById('onedayleastcpu').innerHTML = findMin(getValuesByKey(jobsLastDay, "jobid"), getValuesByKey(jobsLastDay, "cpueff"));
+        document.getElementById('oneweekleastcpu').innerHTML = findMin(getValuesByKey(jobsLastWeek, "jobid"), getValuesByKey(jobsLastWeek, "cpueff"));
+        document.getElementById('onemonthleastcpu').innerHTML = findMin(getValuesByKey(jobsLastMonth, "jobid"), getValuesByKey(jobsLastMonth, "cpueff"));
+        document.getElementById('oneyearleastcpu').innerHTML = findMin(getValuesByKey(jobsLastYear, "jobid"), getValuesByKey(jobsLastYear, "cpueff"));
+
+        document.getElementById('onedaycpubelow').innerHTML = belowaverage(getValuesByKey(jobsLastDay, "cpueff"));
+        document.getElementById('oneweekcpubelow').innerHTML = belowaverage(getValuesByKey(jobsLastWeek, "cpueff"));
+        document.getElementById('onemonthcpubelow').innerHTML = belowaverage(getValuesByKey(jobsLastMonth, "cpueff"));
+        document.getElementById('oneyearcpubelow').innerHTML = belowaverage(getValuesByKey(jobsLastYear, "cpueff"));
+
+        document.getElementById('onedayavgcpueff').innerHTML = getaverage(getValuesByKey(jobsLastDay, "cpueff")) + "%";
+        document.getElementById('oneweekavgcpueff').innerHTML = getaverage(getValuesByKey(jobsLastWeek, "cpueff")) + "%";
+        document.getElementById('onemonthavgcpueff').innerHTML = getaverage(getValuesByKey(jobsLastMonth, "cpueff")) + "%";
+        document.getElementById('oneyearavgcpueff').innerHTML = getaverage(getValuesByKey(jobsLastYear, "cpueff")) + "%";
+
+        document.getElementById('onedaymostmem').innerHTML = findMax(getValuesByKey(jobsLastDay, "jobid"), getValuesByKey(jobsLastDay, "memeff"));
+        document.getElementById('oneweekmostmem').innerHTML = findMax(getValuesByKey(jobsLastWeek, "jobid"), getValuesByKey(jobsLastWeek, "memeff"));
+        document.getElementById('onemonthmostmem').innerHTML = findMax(getValuesByKey(jobsLastMonth, "jobid"), getValuesByKey(jobsLastMonth, "memeff"));
+        document.getElementById('oneyearmostmem').innerHTML = findMax(getValuesByKey(jobsLastYear, "jobid"), getValuesByKey(jobsLastYear, "memeff"));
+
+        document.getElementById('onedayleastmem').innerHTML = findMin(getValuesByKey(jobsLastDay, "jobid"), getValuesByKey(jobsLastDay, "memeff"));
+        document.getElementById('oneweekleastmem').innerHTML = findMin(getValuesByKey(jobsLastWeek, "jobid"), getValuesByKey(jobsLastWeek, "memeff"));
+        document.getElementById('onemonthleastmem').innerHTML = findMin(getValuesByKey(jobsLastMonth, "jobid"), getValuesByKey(jobsLastMonth, "memeff"));
+        document.getElementById('oneyearleastmem').innerHTML = findMin(getValuesByKey(jobsLastYear, "jobid"), getValuesByKey(jobsLastYear, "memeff"));
+
+        document.getElementById('onedaymembelow').innerHTML = belowaverage(getValuesByKey(jobsLastDay, "memeff"));
+        document.getElementById('oneweekmembelow').innerHTML = belowaverage(getValuesByKey(jobsLastWeek, "memeff"));
+        document.getElementById('onemonthmembelow').innerHTML = belowaverage(getValuesByKey(jobsLastMonth, "memeff"));
+        document.getElementById('oneyearmembelow').innerHTML = belowaverage(getValuesByKey(jobsLastYear, "memeff"));
+
+        document.getElementById('onedayavgmemeff').innerHTML = getaverage(getValuesByKey(jobsLastDay, "memeff")) + "%";
+        document.getElementById('oneweekavgmemeff').innerHTML = getaverage(getValuesByKey(jobsLastWeek, "memeff")) + "%";
+        document.getElementById('onemonthavgmemeff').innerHTML = getaverage(getValuesByKey(jobsLastMonth, "memeff")) + "%";
+        document.getElementById('oneyearavgmemeff').innerHTML = getaverage(getValuesByKey(jobsLastYear, "memeff")) + "%";
+
+        document.getElementById('onedayuserjobs').innerHTML = jobsLastDay.length + " jobs";
+        document.getElementById('oneweekuserjobs').innerHTML = jobsLastWeek.length + " jobs";
+        document.getElementById('onemonthuserjobs').innerHTML = jobsLastMonth.length + " jobs";
+        document.getElementById('oneyearuserjobs').innerHTML = jobsLastYear.length + " jobs";   
+
+        document.getElementById('userwaittime').innerHTML = getUserWaitTime(usersacct);
+        document.getElementById('onedayuserwaittime').innerHTML = getUserWaitTime(jobsLastDay);
+        document.getElementById('oneweekuserwaittime').innerHTML = getUserWaitTime(jobsLastWeek);
+        document.getElementById('onemonthuserwaittime').innerHTML = getUserWaitTime(jobsLastMonth);
+        document.getElementById('oneyearuserwaittime').innerHTML = getUserWaitTime(jobsLastYear);
+        
+    }
+
+    // user metrics side
+    function userMetrics(userdata, usersacct) {
+        let jobids = getValuesByKey(userdata, "jobid");
+        let time = getValuesByKey(userdata, "timeeff");
+        let mem = getValuesByKey(userdata, "memeff");
+        let cpu = getValuesByKey(userdata, "cpueff");
+
+        timeFrameInfo(userdata, usersacct);
+
+        document.getElementById('totaluserjobs').innerHTML = usersacct.length + " jobs";
+        document.getElementById('avgtimeeff').innerHTML = getaverage(time) + "%";
+        document.getElementById('avgmemeff').innerHTML = getaverage(mem) + "%";
+        document.getElementById('avgcpueff').innerHTML = getaverage(cpu) + "%";
+        document.getElementById('timebelow').innerHTML = belowaverage(time);
+        document.getElementById('membelow').innerHTML = belowaverage(mem);
+        document.getElementById('cpubelow').innerHTML = belowaverage(cpu);
+        document.getElementById('mosttime').innerHTML = findMax(jobids, time);
+        document.getElementById('mostmem').innerHTML = findMax(jobids, mem);
+        document.getElementById('mostcpu').innerHTML = findMax(jobids, cpu);
+        document.getElementById('leasttime').innerHTML = findMin(jobids, time);
+        document.getElementById('leastmem').innerHTML = findMin(jobids, mem);
+        document.getElementById('leastcpu').innerHTML = findMin(jobids, cpu);
+    }
+
+    // main
+    async function main() {
+        const loadingDiv = document.getElementById('loading');
+
+        // fetch all data
+        const userdata = await fetchUserData();
+        const usersacct = await fetchUserSACCT();
+                
+        // queuePartitions(sacct); 
+        userMetrics(userdata, usersacct);
+        loadingDiv.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', main);
+</script>

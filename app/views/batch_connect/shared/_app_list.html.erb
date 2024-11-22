@@ -1,0 +1,30 @@
+<div class="card <%= local_assigns.fetch(:style, "system-and-shared-apps-header") %>">
+  <div class="card-header"><%= title %></div>
+  <div class="list-group list-group-flush">
+  <%-
+    OodAppGroup.groups_for(
+      apps: apps,
+      group_by: local_assigns.fetch(:group_by, :subcategory)
+    ).each do |app_group|
+  -%>
+    <%=
+      content_tag(
+        "p",
+        app_group.title,
+        class: "list-group-item mb-0 header"
+      ) unless app_group.title.empty?
+    %>
+    <%=
+      render(
+        partial: "batch_connect/shared/app_list_item",
+        collection: app_group.apps,
+        as: :app,
+        locals: {
+          show_owner: local_assigns.fetch(:show_owner, false),
+          current_url: local_assigns[:current_url]
+        }
+      )
+    %>
+  <%- end -%>
+  </div>
+</div>

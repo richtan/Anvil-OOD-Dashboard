@@ -1,0 +1,9 @@
+<h3 class="card-title font-weight-bold">Pinned Apps</h3>
+
+<div class="row">
+  <%= render partial: "/widgets/pinned_apps/app", collection: @pinned_apps %>
+</div>
+
+<a class="font-weight-bold btn btn-outline-info btn-block shadow-sm mb-2" style="font-size: 18px;" href="<%= url_for apps_index_path %>">
+  <i class="fas fa-th"></i> View All Apps
+</a>

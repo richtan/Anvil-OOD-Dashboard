@@ -1,0 +1,41 @@
+<%- group.apps.each do |app| -%>
+  <%- if app.role == "files" -%>
+    <tr id="<%= row_id(app.url) %>">
+      <td>
+      <div class="btn-group dropright">
+        <%= link_to app.links.first.url, class: 'btn btn-primary', target: '_blank' do %>
+          <span title="FontAwesome icon specified: folder" aria-hidden="true" class="fas fa-folder fa-fw"></span> Files
+        <% end %>
+
+        <button type="button" class="btn dropdown-toggle dropdown-toggle-split btn-primary" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+
+        <ul class="dropdown-menu" x-placement="right-start">
+          <%- app.links.each do |link| -%>
+          <%= render partial: "link", locals: { link: link, class: 'dropdown-item pt-2 pb-0' } %>
+          <%- end -%>
+        </ul>
+      </div>
+      <%= tag.div app.caption, class: "text-muted float-right" if caption_app?(app) %>
+      </td>
+      <td><%= app.category %></td>
+      <td><%= app.subcategory %></td>
+      <%- @metadata_columns.each do |column| -%>
+      <td><%= app.metadata.fetch(column, "") %></td>
+      <%- end -%>
+    </tr>
+  <%- else -%>
+    <%- app.links.each do |link| -%>
+      <tr id="<%= row_id(link.url) %>">
+        <td>
+          <%= render partial: "link", locals: { link: link } %>
+          <%= tag.div link.caption, class: "text-muted float-right" if caption_app?(app) %>
+        </td>
+        <td><%= app.category %></td>
+        <td><%= app.subcategory %></td>
+        <%- @metadata_columns.each do |column| -%>
+        <td><%= app.metadata.fetch(column, "") %></td>
+        <%- end -%>
+      </tr>
+    <%- end -%>
+  <%- end -%>
+<%- end -%>
