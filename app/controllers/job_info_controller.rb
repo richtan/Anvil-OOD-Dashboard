@@ -19,6 +19,7 @@ class JobInfoController < ApplicationController
     if cached_result.present? && cached_result["ExitCode"] != "--"
       result_hash = cached_result
     else
+      # Credit to @birc-aeh (https://github.com/birc-aeh/slurm-utils) for jobinfo helper script
       result = `jobinfo -v #{jobid}`
       if $?.success?
         result_hash = result.split("\n").map { |line|
